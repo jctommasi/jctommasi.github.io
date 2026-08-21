@@ -1,0 +1,174 @@
+---
+/**
+ * Icon (US-023) — a tiny, dependency-free inline-SVG icon set.
+ *
+ * Maps an icon NAME from the data (e.g. cv.json.interests[].icon → "dumbbell",
+ * "gamepad", "meditation", "book", "guitar") to a decorative stroke glyph. Icons are purely
+ * decorative cues: every caller pairs the icon with the real, bilingual text
+ * label, so the <svg> is `aria-hidden` (it adds nothing to the accessible name
+ * — the label carries the meaning, P4-style decoration/semantics separation).
+ *
+ * Stroked with `currentColor`, so the glyph inherits the caller's palette token
+ * via `color:` (P7 — the component carries no colours of its own). It also
+ * sizes itself to `1.2em` (scoped to this component, so it can't be overridden
+ * across the Astro style boundary — callers control size via the chip's
+ * font-size). Self-hosted inline paths, no icon font / library, so nothing
+ * extra enters the bundle.
+ *
+ * Reused by the Contact section (US-024; since the 2026-08-09 Frequency Bands
+ * redesign the three band glyphs come from src/data/contact-links.ts) and later
+ * icon'd data (US-042 music hobby also carries an `icon`). An unrecognised name
+ * renders nothing — the
+ * caller's text label still conveys the item, so the section degrades honestly
+ * rather than showing a broken glyph.
+ */
+interface Props {
+  /** Icon name from the data (cv.json.interests[].icon, hobbies icons, …). */
+  name: string;
+}
+const { name } = Astro.props;
+
+// Lucide-derived stroke paths (ISC-licensed), authored for a 24×24 viewBox and
+// a ~1.75 stroke. Decorative only; keep this map the single source of the icon
+// vocabulary so future icon'd sections (US-042) extend it in one place.
+const ICONS: Record<string, string> = {
+  // Side-view airliner. UNUSED since US-1603 dropped the redundant Aeronautics
+  // interest chip (the section itself is right above it); kept because the
+  // vocabulary is cheap and hobbies.json still names it in data.
+  plane:
+    '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  // Scalloped badge + check (US-041 — the aeronautics verified-credential mark;
+  // decorative, the visible "Licensed Pilot" text label carries the meaning).
+  'badge-check':
+    '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/>',
+  // Crescent moon (2026-07-03 — the aeronautics night-rating credential mark;
+  // decorative, the visible "Night Rating" text label carries the meaning).
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  // Two weight plates joined by a grip bar (Gym).
+  dumbbell:
+    '<path d="M4 6.5v11"/><path d="M7 8.5v7"/><path d="M7 12h10"/><path d="M17 8.5v7"/><path d="M20 6.5v11"/>',
+  // Controller body + D-pad cross + two face buttons (E-Sports).
+  gamepad:
+    '<rect width="20" height="12" x="2" y="6" rx="6" ry="6"/><path d="M6 12h4"/><path d="M8 10v4"/><path d="M15 13h.01"/><path d="M18 11h.01"/>',
+  // Two-note quaver glyph. UNUSED since US-1714 removed the Music section's
+  // decorative cue (owner call 2026-08-08, "sacar el icono de musica que esta con
+  // el parrafo"); kept for the same reason as `plane` above — the vocabulary is
+  // cheap and hobbies.json still names it in data.
+  music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  // Seated figure in lotus, hands resting on the knees (US-1603 — the Meditation
+  // interest chip; decorative, the bilingual label carries the meaning).
+  meditation:
+    '<circle cx="12" cy="4.5" r="2.25"/><path d="M12 9v5"/><path d="M12 14c-3.6 0-6.5 2.4-6.5 5.5h13c0-3.1-2.9-5.5-6.5-5.5Z"/><path d="M12 10.5 6 13.5"/><path d="m12 10.5 6 3"/>',
+  // Guitar: headstock, neck, body + bridge stroke (US-1603 — the Guitar interest
+  // chip; decorative, the bilingual label carries the meaning).
+  guitar:
+    '<path d="m11.9 12.1 4.514-4.514"/><path d="M20.1 2.3a1 1 0 0 0-1.4 0l-1.114 1.114A2 2 0 0 0 17 4.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 17.828 7h1.344a2 2 0 0 0 1.414-.586L21.7 5.3a1 1 0 0 0 0-1.4z"/><path d="m6 16 2 2"/><path d="M8.2 9.9C8.7 8.8 9.8 8 11 8c2.8 0 5 2.2 5 5 0 1.2-.8 2.3-1.9 2.8l-.9.4A2 2 0 0 0 12 18a4 4 0 0 1-4 4c-3.3 0-6-2.7-6-6a4 4 0 0 1 4-4 2 2 0 0 0 1.8-1.2z"/>',
+  // --- Skills categories (US-1607). Decorative cues on each collapsible
+  // category toggle; the visible bilingual category label carries the
+  // accessible name (the glyph is inside an aria-hidden span AND is
+  // aria-hidden itself). Keyed from a call-site category→icon map in
+  // PageBody, so an unmapped/renamed category simply renders no glyph. ---
+  // Chip package + centre die + pin stubs (AI & LLM Systems).
+  cpu: '<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>',
+  // Angle brackets (Programming).
+  code: '<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>',
+  // Heater shield (Offensive Security & Code Analysis).
+  shield:
+    '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  // Shell prompt caret + command line (Systems & Operating Environments).
+  terminal: '<path d="m4 17 6-6-6-6"/><path d="M12 19h8"/>',
+  // Two stacked rack units with status LEDs (Infrastructure & DevOps).
+  server:
+    '<rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 6h.01"/><path d="M6 18h.01"/>',
+  // Cylinder with platter rings (Data & Storage).
+  database:
+    '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>',
+  // Single cumulus outline (Cloud Platforms).
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
+  // Board outline with traces and pads (Hardware & Low-Level Engineering).
+  'circuit-board':
+    '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M11 9h4a2 2 0 0 0 2-2V3"/><circle cx="9" cy="9" r="2"/><path d="M7 21v-4a2 2 0 0 1 2-2h4"/><circle cx="15" cy="15" r="2"/>',
+  // Open-end wrench (Tooling & Development Ecosystem).
+  wrench:
+    '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  // --- Contact routes (US-024; 2026-08-09 Frequency Bands). Brand/concept
+  // glyphs for the three band links; the visible name + handle carry the
+  // accessible name, the icon is decoration. The `mail` + `instagram` glyphs
+  // were REMOVED with their channels (the redesign's explicit "leave no icon
+  // artifacts" call — overriding the `plane`/`music` unused-but-kept
+  // precedent for these two only). ---
+  // "in" silhouette: post arm + base bar + the dot of the i (LinkedIn).
+  linkedin:
+    '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/>',
+  // Octocat silhouette + tail (GitHub).
+  github:
+    '<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>',
+  // Open book / writing surface (Medium / Blog — Lucide has no Medium mark, so a
+  // generic blog/writing glyph; the visible "Medium / Blog" label names the route).
+  book:
+    '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  // --- Research pipeline stages (2026-08-08 pipeline redesign). Decorative
+  // column glyphs over each stage label; the visible HYPOTHESIS…PUBLISH label
+  // carries the meaning (svg aria-hidden), and the pipeline stays comprehensible
+  // by its labels + the per-row progress sentence. `shield` (above) is the
+  // VALIDATE glyph; these four cover the rest. ---
+  // Bulb + base filament (HYPOTHESIS).
+  lightbulb:
+    '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  // Conical lab flask (TEST).
+  flask:
+    '<path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/>',
+  // Targeting reticle (EXPLOIT — offensive targeting).
+  crosshair:
+    '<circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>',
+  // Pennant on a staff (PUBLISH — shipped/flagged).
+  flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>',
+  // --- Competency constellation nodes (2026-08-08 "04 / SKILL CONSTELLATION"
+  // redesign). Decorative glyphs in each capability node's badge; the visible
+  // <h3> title carries the meaning (svg aria-hidden). red-team → crosshair,
+  // ai-security → cpu, platforms → server, purple-team → shield all reuse glyphs
+  // above; these two are the additions. ---
+  // Beetle body + legs + antennae (Vulnerability Research).
+  bug: '<path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/>',
+  // Four-point spark + small twinkle (AI-Assisted Analysis).
+  sparkles:
+    '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>',
+  // --- About dossier (2026-08-08 "02 — Split Dossier" redesign). The FACT
+  // INDEX rows reuse terminal / shield / database / sparkles / code above
+  // (decorative cues beside each label); this one marks the ORIGIN case-file
+  // block. ---
+  // Meridian globe (ORIGIN — where the trajectory started).
+  globe:
+    '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+};
+const path = ICONS[name];
+---
+
+{
+  path && (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.75"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      set:html={path}
+    />
+  )
+}
+
+<style>
+  /* Sized in em so the glyph scales with the caller's chip font-size; colour
+     comes from the inherited `color` via currentColor (P7). Scoped to this
+     component — the size can't be clobbered across the Astro style boundary. */
+  svg {
+    width: 1.2em;
+    height: 1.2em;
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
+</style>

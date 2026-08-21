@@ -1,0 +1,135 @@
+---
+/**
+ * SeoHead (US-049) — per-locale SEO metadata, social cards, and structured data
+ * (manual: US-I1, §15). Rendered inside <head> by BaseLayout; self-contained so
+ * both locale routes stay single-sourced.
+ *
+ * Every human-facing value is read from cv.json via the i18n accessors (P8: no
+ * hardcoded translatable literals — title/description/jobTitle are the bilingual
+ * `{es,en}` US-003 fields, so this adds ZERO new string-bundle keys). The OG/
+ * Twitter property names, schema.org URLs, and BCP-47/OG locale codes are
+ * language-agnostic identifiers, not translatable content.
+ *
+ * The Person JSON-LD's `sameAs` is exactly the four social URLs from
+ * cv.json.contact (P3 — every fact traces to the data).
+ */
+import type { Locale } from '../i18n';
+import { getEntry } from 'astro:content';
+import { pick, otherLocale, localizedPath, locales, defaultLocale } from '../i18n';
+
+interface Props {
+  locale: Locale;
+  /**
+   * Optional per-page override (US-605 research reader pages): the
+   * locale-agnostic sub-path (e.g. '/research/<id>/') plus the localized page
+   * title/description (chapter title + summary — bilingual data, so still ZERO
+   * new P8 strings). When present, the canonical/hreflang/OG URLs resolve for
+   * that sub-path and the JSON-LD becomes an Article authored by the cv Person.
+   * When ABSENT the output is byte-identical to the pre-US-605 home head.
+   */
+  page?: {
+    path: string;
+    title: string;
+    description: string;
+  };
+}
+const { locale, page } = Astro.props;
+
+const cv = await getEntry('cv', 'cv');
+if (!cv) throw new Error('cv content collection entry missing');
+const { name, title, profile, contact } = cv.data;
+
+// Absolute origin (configured in astro.config; guarded so TS sees a URL, never
+// undefined — the github.io user page is a fixed domain).
+const site = Astro.site ?? new URL('https://jctommasi.github.io');
+const path = page?.path ?? '/';
+const abs = (l: Locale) => new URL(localizedPath(path, l), site).href;
+
+const localeTitle = pick(locale, title); // jobTitle / <title> tail
+// Home: the profile headline; reader pages: the chapter summary.
+const description = page?.description ?? pick(locale, profile.headline);
+// Home: "Name — Title"; reader pages: "Chapter — Name" (the page subject leads).
+const pageTitle = page ? `${page.title} — ${name}` : `${name} — ${localeTitle}`;
+
+// Canonical for THIS route + the per-locale hreflang alternates (/ <-> /es/).
+const canonical = abs(locale);
+const xDefault = abs(defaultLocale);
+
+// One branded OG card (1200x630), language-neutral brand art; the localized copy
+// rides on the og:title / og:description tags. Made absolute (crawlers require it).
+const ogImage = new URL('/og/og-image.png', site).href;
+
+// BCP-47 -> OpenGraph locale code.
+const OG_LOCALE: Record<Locale, string> = { en: 'en_US', es: 'es_ES' };
+
+// Person structured data (schema.org). name + jobTitle + sameAs are the AC4
+// required fields; url/description/email/image enrich it. All from cv.json.
+// Reader pages (US-605) swap it for an Article: headline + inLanguage + the cv
+// Person as author (every value still traces to the data, P3).
+const structuredData = page
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: page.title,
+      description,
+      inLanguage: locale,
+      url: canonical,
+      mainEntityOfPage: canonical,
+      author: {
+        '@type': 'Person',
+        name,
+        url: new URL(localizedPath('/', locale), site).href,
+      },
+    }
+  : {
+      '@context': 'https://schema.org',
+      '@type': 'Person',
+      name,
+      jobTitle: localeTitle,
+      description,
+      url: canonical,
+      email: `mailto:${contact.email}`,
+      image: ogImage,
+      sameAs: contact.social.map((s) => s.url),
+    };
+---
+{/* Primary metadata, per-locale, from cv.json (AC1) */}
+<title>{pageTitle}</title>
+<meta name="description" content={description} />
+<meta name="robots" content="index, follow" />
+<meta name="theme-color" content="#050805" />
+<link rel="canonical" href={canonical} />
+
+{/* hreflang alternates for / <-> /es/ (AC3) */}
+{locales.map((l) => <link rel="alternate" hreflang={l} href={abs(l)} />)}
+<link rel="alternate" hreflang="x-default" href={xDefault} />
+
+{/* Favicon set (AC2): SVG for modern browsers, PNG app icon for iOS/legacy */}
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" type="image/png" sizes="180x180" href="/apple-touch-icon.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+{/* OpenGraph (AC2) */}
+<meta property="og:type" content={page ? 'article' : 'website'} />
+<meta property="og:site_name" content={name} />
+<meta property="og:title" content={pageTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={ogImage} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={pageTitle} />
+<meta property="og:locale" content={OG_LOCALE[locale]} />
+<meta property="og:locale:alternate" content={OG_LOCALE[otherLocale(locale)]} />
+
+{/* Twitter card (AC2) */}
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={pageTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage} />
+<meta name="twitter:image:alt" content={pageTitle} />
+
+{/* Structured data (AC4; US-605: Article on reader pages, Person on home).
+    is:inline + set:html: keep the JSON exact, unprocessed by Astro's script
+    pipeline. */}
+<script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />

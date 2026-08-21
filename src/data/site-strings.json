@@ -1,0 +1,235 @@
+{
+  "_note": "Shared UI-string bundle (PRD US-003). Bilingual ES/EN with ES as the primary locale. Section ids stay language-agnostic across all rungs — only the human-facing titles/labels/prose here translate. The `nav` keys are the six canonical nav items; `sections` covers every canonical region label; `switcher` carries the theme-switcher aria strings (names per the 4 canonical slugs); `cta` carries call-to-action labels. See schemas.md.",
+  "defaultLocale": "es",
+  "locales": ["es", "en"],
+  "es": {
+    "nav": {
+      "home": "Inicio",
+      "about": "Sobre mí",
+      "work": "Proyectos",
+      "research": "Investigación",
+      "experience": "Experiencia",
+      "contact": "Contacto",
+      "label": "Principal"
+    },
+    "sections": {
+      "hero": "Inicio",
+      "about": "Sobre mí",
+      "competencies": "Competencias",
+      "skills": "Habilidades",
+      "work": "Proyectos",
+      "research": "Investigación",
+      "articles": "Artículos",
+      "experience": "Experiencia",
+      "education": "Educación",
+      "aeronautics": "Aeronáutica",
+      "music": "Música",
+      "interests": "Intereses",
+      "contact": "Contacto"
+    },
+    "labels": {
+      "article": "Artículo",
+      "purpleTeam": "Purple Team",
+      "licensedPilot": "Piloto con licencia",
+      "nightRating": "Habilitación de vuelo nocturno",
+      "logbook": "Libro de vuelo",
+      "logbookTotal": "Horas totales",
+      "logLandings": "Aterrizajes",
+      "logDate": "Fecha",
+      "logAircraft": "Matrícula",
+      "logRoute": "Ruta",
+      "logHours": "Horas",
+      "logStatusPending": "Libro de vuelo no disponible por el momento",
+      "logStatusLoading": "Consultando el libro de vuelo…",
+      "logShowMore": "Mostrar los {count} vuelos",
+      "logShowFewer": "Mostrar menos vuelos"
+    },
+    "research": {
+      "lead": "Artículos de autoría propia, escritos por mí de principio a fin. Nacieron como guías personales — notas paso a paso para ejecutar ciertos trabajos de seguridad ofensiva — que decidí hacer públicas para aportar a la comunidad. Antes los publicaba en Medium; de ahora en más viven acá, 100%."
+    },
+    "music": {
+      "playlistTitle": "Lista de reproducción {n} en Tidal",
+      "playlistPending": "Listas de reproducción disponibles próximamente.",
+      "openOnTidal": "Abrir en TIDAL",
+      "openAlbum": "Abrir “{title}” de {artist} en TIDAL",
+      "prevAlbum": "Álbum anterior",
+      "nextAlbum": "Álbum siguiente",
+      "albumPosition": "Álbum {n} de {total}",
+      "linkPending": "Enlace disponible próximamente.",
+      "albumsPending": "Selección de álbumes disponible próximamente."
+    },
+    "practice": {
+      "label": "Práctica",
+      "editorHint": "Tab para indentar · Esc para salir del editor",
+      "quizHint": "Elegir una opción para recibir feedback inmediato",
+      "correct": "Correcto",
+      "incorrect": "Incorrecto",
+      "sandboxHint": "Editá el código y la vista previa se vuelve a ejecutar · Tab para indentar · Esc para salir del editor",
+      "previewLoading": "Iniciando la vista previa en vivo…",
+      "previewUnavailable": "No se pudo cargar la vista previa en vivo (puede que estés sin conexión o que el CDN del sandbox esté bloqueado). El código del ejemplo se muestra en el editor.",
+      "previewTitle": "Vista previa en vivo del sandbox",
+      "detectionTitle": "Mapeo de detección",
+      "techniquesLabel": "Técnicas mapeadas (MITRE ATT&CK / ATLAS)",
+      "detectionRuleLabel": "Regla de detección"
+    },
+    "hero": {
+      "commands": [
+        "hola visitante",
+        "aquí encontrás un lugar donde están todas mis pasiones",
+        "scrollea para ver más info :)"
+      ]
+    },
+    "terminal": {
+      "inputLabel": "Entrada de terminal — escribí un comando y presioná Enter"
+    },
+    "switcher": {
+      "buttonLabel": "Tema",
+      "menuLabel": "Elegir tema",
+      "ariaLabelTemplate": "Tema: {name}. Cambiar tema",
+      "statusTemplate": "Tema cambiado a {name}",
+      "themes": {
+        "terminal-neon": "Terminal Neon",
+        "cockpit-aero": "Cockpit Aero",
+        "editorial-minimal": "Editorial Minimal",
+        "hybrid-terminal-aero": "Hybrid Terminal-Aero"
+      }
+    },
+    "cta": {
+      "viewWork": "Ver proyectos",
+      "readResearch": "Leer la investigación",
+      "getInTouch": "Contactar",
+      "downloadCv": "Descargar CV",
+      "listen": "Escuchar",
+      "readTranscript": "Leer transcripción",
+      "skipToContent": "Saltar al contenido",
+      "comingSoon": "Próximamente",
+      "audioPending": "Audio disponible próximamente",
+      "transcriptPending": "Transcripción próximamente",
+      "enableEffects": "Activar efectos",
+      "reduceMotion": "Reducir movimiento",
+      "readArticle": "Leer artículo",
+      "backToPortfolio": "Volver al portfolio",
+      "articleBodyPending": "Artículo completo próximamente — por ahora, el resumen de arriba es el abstract."
+    },
+    "locale": {
+      "label": "Idioma",
+      "es": "Español",
+      "en": "English"
+    }
+  },
+  "en": {
+    "nav": {
+      "home": "Home",
+      "about": "About",
+      "work": "Work",
+      "research": "Research",
+      "experience": "Experience",
+      "contact": "Contact",
+      "label": "Primary"
+    },
+    "sections": {
+      "hero": "Home",
+      "about": "About",
+      "competencies": "Competencies",
+      "skills": "Skills",
+      "work": "Work",
+      "research": "Research",
+      "articles": "Articles",
+      "experience": "Experience",
+      "education": "Education",
+      "aeronautics": "Aeronautics",
+      "music": "Music",
+      "interests": "Interests",
+      "contact": "Contact"
+    },
+    "labels": {
+      "article": "Article",
+      "purpleTeam": "Purple Team",
+      "licensedPilot": "Licensed Pilot",
+      "nightRating": "Night Rating",
+      "logbook": "Flight Logbook",
+      "logbookTotal": "Total Hours",
+      "logLandings": "Landings",
+      "logDate": "Date",
+      "logAircraft": "Registration",
+      "logRoute": "Route",
+      "logHours": "Hours",
+      "logStatusPending": "Flight logbook unavailable right now",
+      "logStatusLoading": "Fetching the flight logbook…",
+      "logShowMore": "Show all {count} flights",
+      "logShowFewer": "Show fewer flights"
+    },
+    "research": {
+      "lead": "Self-authored articles, written end to end by me. They began as personal field guides — step-by-step notes for carrying out specific offensive-security work — which I decided to publish so they can be of use to the community. I used to release them on Medium; from now on they live here, 100%."
+    },
+    "music": {
+      "playlistTitle": "Tidal playlist {n}",
+      "playlistPending": "Playlists coming soon.",
+      "openOnTidal": "Open on TIDAL",
+      "openAlbum": "Open “{title}” by {artist} on TIDAL",
+      "prevAlbum": "Previous album",
+      "nextAlbum": "Next album",
+      "albumPosition": "Album {n} of {total}",
+      "linkPending": "Link coming soon.",
+      "albumsPending": "Album selection coming soon."
+    },
+    "practice": {
+      "label": "Practice",
+      "editorHint": "Tab indents · Esc exits the editor",
+      "quizHint": "Choose an option for instant feedback",
+      "correct": "Correct",
+      "incorrect": "Incorrect",
+      "sandboxHint": "Edit the code and the preview re-runs · Tab indents · Esc exits the editor",
+      "previewLoading": "Starting the live preview…",
+      "previewUnavailable": "The live preview couldn't load (you may be offline, or the sandbox CDN is blocked). The example source is shown in the editor.",
+      "previewTitle": "Live sandbox preview",
+      "detectionTitle": "Detection mapping",
+      "techniquesLabel": "Mapped techniques (MITRE ATT&CK / ATLAS)",
+      "detectionRuleLabel": "Detection rule"
+    },
+    "hero": {
+      "commands": [
+        "hi visitor",
+        "here you can find a place where all my passions are",
+        "scroll to get more info :)"
+      ]
+    },
+    "terminal": {
+      "inputLabel": "Terminal input — type a command and press Enter"
+    },
+    "switcher": {
+      "buttonLabel": "Theme",
+      "menuLabel": "Choose theme",
+      "ariaLabelTemplate": "Theme: {name}. Change theme",
+      "statusTemplate": "Theme changed to {name}",
+      "themes": {
+        "terminal-neon": "Terminal Neon",
+        "cockpit-aero": "Cockpit Aero",
+        "editorial-minimal": "Editorial Minimal",
+        "hybrid-terminal-aero": "Hybrid Terminal-Aero"
+      }
+    },
+    "cta": {
+      "viewWork": "View work",
+      "readResearch": "Read the research",
+      "getInTouch": "Get in touch",
+      "downloadCv": "Download CV",
+      "listen": "Listen",
+      "readTranscript": "Read transcript",
+      "skipToContent": "Skip to content",
+      "comingSoon": "Coming soon",
+      "audioPending": "Audio coming soon",
+      "transcriptPending": "Transcript coming soon",
+      "enableEffects": "Enable effects",
+      "reduceMotion": "Reduce motion",
+      "readArticle": "Read article",
+      "backToPortfolio": "Back to portfolio",
+      "articleBodyPending": "Full article coming soon — for now, the summary above is the abstract."
+    },
+    "locale": {
+      "label": "Language",
+      "es": "Español",
+      "en": "English"
+    }
+  }
+}

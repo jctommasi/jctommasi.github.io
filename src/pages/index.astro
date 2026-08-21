@@ -1,0 +1,14 @@
+---
+// EN route (`/`) — the build default locale (manual §10). The ES twin lives at
+// src/pages/es/index.astro. Both are thin: BaseLayout owns the chrome, PageBody
+// owns the (locale-driven) content, so only `locale` differs between them.
+import type { Locale } from '../i18n';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageBody from '../components/PageBody.astro';
+
+const locale: Locale = 'en';
+---
+
+<BaseLayout locale={locale}>
+  <PageBody locale={locale} />
+</BaseLayout>

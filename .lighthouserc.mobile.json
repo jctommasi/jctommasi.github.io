@@ -1,0 +1,27 @@
+{
+  "ci": {
+    "collect": {
+      "comment": "US-048 mobile budgets (manual §2): run as `lhci autorun --config=.lighthouserc.mobile.json`. Lighthouse's DEFAULT form factor is mobile (Moto-G-class CPU + slow-4G throttling), so no `preset` is set. Same two single-page routes, auto-discovered from dist/.",
+      "staticDistDir": "./dist",
+      "numberOfRuns": 1
+    },
+    "assert": {
+      "assertMatrix": [
+        {
+          "comment": "Mobile (with tier fallback): Performance >= 80 and LCP < 4 s (manual §2). Accessibility >= 95 holds on mobile too. On mobile the device-tier probe drops DOF + volumetric clouds and gentles the scroll-velocity coupling (US-048), and reduced-motion users get the static poster with no engine at all.",
+          "matchingUrlPattern": ".*",
+          "assertions": {
+            "categories:performance": ["error", { "minScore": 0.8 }],
+            "categories:accessibility": ["error", { "minScore": 0.95 }],
+            "largest-contentful-paint": ["error", { "maxNumericValue": 4000 }],
+            "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }]
+          }
+        }
+      ]
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": "./.lighthouseci-mobile"
+    }
+  }
+}

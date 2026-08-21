@@ -1,0 +1,637 @@
+/* =============================================================================
+   Theme system — token families, type stacks, semantic aliases (US-028)
+   manual §6.1–6.2, Appendix A (colour) / Appendix B (typography); policies P7/P8.
+
+   A theme is "data, not scattered CSS": the three ramp families + two type
+   stacks live here, and the per-theme SEMANTIC ALIASES (--bg/--fg/--accent +
+   font stacks) resolve from a single `data-theme` attribute on <html>, set by
+   the scroll/section zone observer in BaseLayout (sections 1–9 + 12–13 = Matrix,
+   10 = Sky, 11 = Note-rain — never a user picker, manual §6.1). The token-layer
+   CROSSFADE animation across zone boundaries is US-029; this story establishes
+   the tokens, fonts and the instant zone swap.
+   ============================================================================= */
+
+/* --- Self-hosted, subset (latin), font-display:swap faces (Appendix B) --------
+   Latin subset only (U+0000–00FF covers the EN + ES character set, incl. the
+   Spanish accents/¿¡); per-glyph fallback through the stack handles any stray
+   symbol. The woff2 are committed under ./fonts and content-hashed into _astro/
+   by Vite (the CSS url() is resolved at build). `swap` = never invisible text. */
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/space-mono-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/ibm-plex-mono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/ibm-plex-mono-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Saira Semi Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/saira-semicondensed-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/inter-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/inter-600.woff2') format('woff2');
+}
+
+/* --- Colour ramps: the three theme token families (Appendix A, P7) ------------
+   Each theme's emotional range is carried by its two core hexes; the rest is the
+   derived ramp. These are the canonical token home; src/webgl/palette.ts mirrors
+   the Matrix hexes for the GL layer (US-040/US-042 add Sky/Note GL palettes). */
+:root {
+  /* Matrix (global) — core #050805 (void) + #00FF41 (phosphor green) */
+  --mx-void: #050805;
+  --mx-green: #00ff41;
+  --mx-green-mid: #00b82e;
+  --mx-green-dim: #008f11;
+  --mx-green-far: #003b00;
+  --mx-green-hi: #c7ffd0;
+
+  /* Sky (aeronautics) — core #7FB2E8 (sky blue) + #F4C27A (warm sun/horizon) */
+  --sky-blue: #7fb2e8;
+  --sky-haze: #dcebfb;
+  --sky-cloud: #ffffff;
+  --sky-sun: #f4c27a;
+  --sky-ink: #1b2a3a;
+  /* G1000 synthetic-vision terrain/airport ramp (US-301; starting hexes owner-tunable) */
+  --sky-terrain-low: #4e7d46;
+  --sky-terrain-high: #8a6b45;
+  --sky-terrain-line: #2e4633;
+  --sky-runway: #565b63;
+  --sky-runway-mark: #f2f4f6;
+  --sky-structure: #b9c4cf;
+  --sky-hangar-red: #c0392b;
+
+  /* Note-rain (music) — core #050805 + #00FF41, audio-reactive accent #9B7BFF */
+  --note-void: #050805;
+  --note-green: #00ff41;
+  --note-accent: #9b7bff;
+  --note-dim: #008f11;
+  --note-hi: #c7ffd0;
+  /* Violet WebGL environment ramp (US-405; single-token owner-tunable) — the
+     Note world's rain/terrain/fog/poster run on this ramp; UI consumers keep the
+     green tokens above. body = --note-accent (#9B7BFF). */
+  --note-head: #ede6ff;
+  --note-mid: #6e4fd8;
+  --note-far: #241543;
+
+  /* Type stacks (Appendix B): mono display + mono body for Matrix/Note-rain,
+     technical-sans display + humanist-sans body for Sky. System fallbacks keep
+     text rendering before/without the self-hosted faces. */
+  --font-mono-display: 'Space Mono', ui-monospace, 'Cascadia Mono', 'Source Code Pro', Menlo,
+    Consolas, monospace;
+  --font-mono-body: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', 'Source Code Pro', Menlo,
+    Consolas, monospace;
+  --font-sky-display: 'Saira Semi Condensed', system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-sky-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+
+  /* --- Shared translucent surfaces (US-601) — THE owner-tunable transparency
+     knob. Every dark section panel and nested card in PageBody consumes these
+     two tokens (one place to retune how much Matrix rain shows through).
+     EXCLUDED by owner call 2026-07-30: the hero terminal window (90%) + its
+     titlebar (55%), the SiteNav bg, the light .aero Sky panel (96% haze), the
+     .section__title plate (US-602 owns it), and the denser code/widget
+     surfaces (practice body / detection pre / sandpack preview — now the
+     94% --surface-code token below, US-607).
+     P6 floor: worst case is the brightest rain head #C7FFD0 directly behind —
+     --mx-green-hi on an 80% panel ≈10.7:1, --mx-green-mid ≈4.5:1 (thin; every
+     rendered green-mid instance sits on the denser card-over-panel composite
+     ≈95.6% void ≈7.1:1). Dropping either share below these values needs a
+     fresh P6 audit. */
+  --surface-panel: color-mix(in srgb, var(--mx-void) 80%, transparent);
+  --surface-card: color-mix(in srgb, var(--mx-void) 78%, transparent);
+
+  /* --- Code-accent tokens (US-607) — **P7 AMENDMENT** (owner call 2026-07-30):
+     the amber + cyan below are legal ONLY inside code blocks (the build-time
+     Shiki highlights + the US-608 live editors). They must never colour chrome,
+     prose, headings, or any non-code surface — everywhere else P7 stays "theme
+     ramp tokens only". The amendment is recorded here, in the CLAUDE.md P7
+     line, and in the manual's Appendix A note (grep "code-amber" hits all
+     three). src/theme/shiki-matrix.ts MIRRORS these hexes for the build-time
+     highlighter (Shiki inlines literal colours — the palette.ts mirror
+     discipline); a build-time assert in src/theme/code-highlight.ts compares
+     the mirror against this file and fails the build on drift. */
+  --code-amber: #ffb000;
+  --code-cyan: #5fd7ff;
+  /* The code-block surface (US-607): denser than the cards so the accents pop.
+     P6 on the bare 94% surface, worst case (#C7FFD0 rain head behind): amber
+     ≈9.9:1, cyan ≈10.9:1, green ≈13.4:1, green-mid ≈6.9:1 — but the thinnest
+     mapped token, green-dim comments, reads ≈4.3 there. Every code block
+     RENDERS on the card-over-panel composite (US-601), where green-dim holds
+     ≈4.7:1 — don't move a code block off the card composite (or thin this
+     share) without a fresh P6 audit. */
+  --surface-code: color-mix(in srgb, var(--mx-void) 94%, transparent);
+
+  /* --- Vulnerability-severity pastel ramp (US-1710) — **P7 AMENDMENT #3**
+     (owner call 2026-08-08, "simulando los colores por default utilizados en la
+     severidad de las vulnerabilidades, deben ser colores tono pastel en
+     crossfade"): the six muted stops below are legal ONLY on the Experience
+     timeline rail — since the 2026-08-08 "Chapter Path" redesign that is the
+     chapter-index rail: .exp__chapter::after segments + .exp__chapter::before
+     node dots (US-1710 shipped the same surface as .exp__entry::after/::before
+     on the retired flat timeline; same severityAt/severitySegment derivation)
+     — non-text decoration, 2px wide, with no text ever sitting on it. They must
+     never colour chrome, prose, headings, borders, or any other surface;
+     everywhere else P7 stays "theme ramp tokens only" (plus the code-block
+     amendment above). The amendment is recorded here, in the CLAUDE.md P7 line,
+     and in the manual's Appendix A note (grep "sev-violet" hits all three).
+     Order = the escalation story, TOP (newest role) to BOTTOM (oldest):
+     violet → red → orange → blue → green → white-grey. Deliberately pastel
+     (low chroma, high lightness) so the ramp sits quietly on the void instead
+     of shouting next to the phosphor green. PageBody computes only the STOP
+     POSITIONS from array position — the colours stay these token references,
+     interpolated boundaries via color-mix(), so no hex literal leaves this
+     file. Worst-case P6-style read (non-text 3:1 floor, over the 80% panel with
+     the brightest rain head behind): every stop clears it comfortably —
+     measured in scripts/ralph/artifacts/us1710/. */
+  --sev-violet: #c3aee8;
+  --sev-red: #e3a7a7;
+  --sev-orange: #e8c8a0;
+  --sev-blue: #a3c4de;
+  --sev-green: #a9d5b6;
+  --sev-grey: #ccd4cf;
+
+  /* --- Bracelet metal tokens (US-901, P7 AMENDMENT #2) — RETIRED (owner call
+     2026-08-02, US-1101/US-1102): the metallic-grey bracelet ramp's sole legal
+     surface, the SiteNav header chrome, was re-materialized entirely on the
+     --mx-* ramp (Matrix chassis band + filled --mx-green anchors + near-void
+     ghost plates), leaving the grey tokens with ZERO consumers — so the
+     amendment DISSOLVES and P7 returns to "theme ramp tokens only" (plus the
+     code-block amendment above). The retirement is recorded here, in the
+     CLAUDE.md P7 line, and in the manual's Appendix A note. brazalete.jpg
+     stays at the repo root as the owner's geometry reference photo (never
+     emitted). */
+
+  /* --- Panel CRT scanlines (US-803): the US-602 tab texture extended to the
+     top-level content panels so tab + panel read as one piece of phosphor
+     hardware. ONE geometry (1px lines on a 3px period), three register inks:
+     the tab's exact green-far mix (matrix panels + the reader article), the
+     US-707 ink-alpha inverted polarity (the light .aero), and the US-708
+     note-far violet-black (music / interests / contact). Defined ONCE here;
+     each panel PREPENDS its register's layer to its background, and the
+     Section.astro tab plates consume the SAME tokens, so tab and panel
+     textures can never drift. Darken-only over every register's surface ⇒ the
+     established contrast floors hold (matrix/note surfaces only get darker;
+     sky-ink over an .aero stripe ≈8:1, the US-707 tab math). ONE texture
+     level: nested cards/chips/practice/quiz/--surface-code blocks never take
+     the layer (no moiré stacking, code stays clean). A STATIC surface
+     texture, present under both motion paths (the US-602 precedent — texture,
+     not motion). P7: ramp tokens + alpha only. */
+  --crt-line-matrix: color-mix(in srgb, var(--mx-green-far) 55%, transparent);
+  --crt-line-sky: color-mix(in srgb, var(--sky-ink) 14%, transparent);
+  --crt-line-note: color-mix(in srgb, var(--note-far) 65%, transparent);
+  --crt-lines-matrix: repeating-linear-gradient(
+    to bottom,
+    var(--crt-line-matrix) 0,
+    var(--crt-line-matrix) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  --crt-lines-sky: repeating-linear-gradient(
+    to bottom,
+    var(--crt-line-sky) 0,
+    var(--crt-line-sky) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  --crt-lines-note: repeating-linear-gradient(
+    to bottom,
+    var(--crt-line-note) 0,
+    var(--crt-line-note) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+
+  /* --- Full-page CRT glass (US-804): ONE fixed overlay (BaseLayout's
+     .crt-glass) puts a screen-glass scanline wash over EVERYTHING — hero, nav,
+     panels, live canvas — so the whole site reads as one CRT tube. Same 3px
+     geometry as the panel texture above but markedly FAINTER, and a SEPARATE
+     knob: these tokens are the glass, --crt-lines-* are the panel/tab surface
+     texture — retune them independently. --crt-glass-alpha is the owner-tunable
+     darkening knob (budget ≤ ~10%; each glass line darkens whatever is under it
+     by this share of void). Void-alpha only (P7 — the established void/black
+     alpha family, no new colour). TIME-INVARIANT static texture: no animation,
+     no JS (zero flash risk, §15 structural) — present under BOTH motion paths,
+     the US-602/US-803 texture-not-motion precedent. */
+  --crt-glass-alpha: 6%;
+  --crt-glass-line: color-mix(in srgb, var(--mx-void) var(--crt-glass-alpha), transparent);
+  --crt-glass-lines: repeating-linear-gradient(
+    to bottom,
+    var(--crt-glass-line) 0,
+    var(--crt-glass-line) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+
+  /* --font-display / --font-body are defined ONCE, STATICALLY as the mono stacks
+     (US-307). They are NEVER redefined inside a [data-theme] block: flipping
+     data-theme must change PAINT ONLY (colours), never the page font — a global
+     mono⇄Inter swap reflowed the whole document (~7500px of #research mono text),
+     which moved rects, triggered browser scroll-anchoring, and oscillated the
+     92.5% zone-flip line = the aeronautics blink/teleport bug. Sky type is applied
+     per-section, statically (.aero pins Inter, #aeronautics .section__title pins
+     Saira below) so the Sky register still switches type without touching layout. */
+  --font-display: var(--font-mono-display);
+  --font-body: var(--font-mono-body);
+}
+
+/* --- Registered token colours, so they INTERPOLATE across crossfades (US-029) -
+   Registering --bg/--fg/--accent as <color> custom properties lets the tokens
+   THEMSELVES animate when `data-theme` flips (manual §6.3) — every consumer,
+   including ::selection, crossfades, and the live value is sample-able at a blend
+   midpoint for the P6 contrast check. Engines without @property simply flip the
+   token (the background-color/color transitions below still ease the html/body
+   surfaces — graceful fallback). initial-value = the Matrix defaults. */
+@property --bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #050805;
+}
+@property --fg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #c7ffd0;
+}
+@property --accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #00ff41;
+}
+
+/* --- Sticky-header chassis hue seeds, registered so they INTERPOLATE (US-1611)
+   The SiteNav band follows the scroll zone (see the --nav-* block below). These
+   are the COLOUR SEEDS the derived --nav-* tokens mix from; registering them as
+   <color> lets the whole chassis crossfade with the US-029 token window instead
+   of hard-cutting at a boundary (the derived color-mix() tokens re-resolve every
+   frame from the interpolated seed). `initial-value` must be computationally
+   independent, so it mirrors the Matrix ramp hex — the --bg/--fg/--accent
+   precedent; the :root declarations below still read the ramp tokens, which stay
+   the single source of truth. */
+@property --nav-tint {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #003b00;
+}
+@property --nav-glow {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #00ff41;
+}
+@property --nav-dot-halo {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #008f11;
+}
+@property --nav-anchor-fill {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #00ff41;
+}
+@property --nav-anchor-fill-hover {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #c7ffd0;
+}
+@property --nav-anchor-edge {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #008f11;
+}
+@property --nav-plate-border {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #008f11;
+}
+@property --nav-plate-border-hover {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #00ff41;
+}
+@property --nav-plate-label {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #00ff41;
+}
+@property --nav-plate-label-hi {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #c7ffd0;
+}
+
+/* --- Semantic aliases resolve per ACTIVE theme -------------------------------
+   The zone observer toggles `data-theme` on <html>; these aliases (the chrome's
+   actual surface/text/accent + face) follow. Matrix is the default (no attr or
+   data-theme="matrix"). Note-rain stays mono — kinship with Matrix; only the
+   accent + glyphs differ (manual §6.2). */
+:root,
+[data-theme='matrix'] {
+  --bg: var(--mx-void);
+  --fg: var(--mx-green-hi);
+  --accent: var(--mx-green);
+}
+[data-theme='sky'] {
+  --bg: var(--sky-haze);
+  --fg: var(--sky-ink);
+  --accent: var(--sky-sun);
+}
+[data-theme='note'] {
+  --bg: var(--note-void);
+  --fg: var(--note-hi);
+  --accent: var(--note-accent);
+}
+
+/* --- Sticky-header chassis tokens — the nav FOLLOWS THE ZONE (US-1611) --------
+   Owner call 2026-08-07 ("aplicar el fix del header que no cambia de color y
+   siempre es verde"): SiteNav read the --mx-* ramp literally, so the band stayed
+   Matrix green over the Sky (aeronautics) and Note (interests → contact) zones
+   while every other surface crossfaded. The fix is a pure HUE TRANSPLANT — the
+   US-1101/US-1102 GEOMETRY (two masked pseudo layers with opposite alpha ramps,
+   the 15%/85% parting seams, four node dots, filled anchors, ghost plates
+   straddling the bottom border, every metric) is structurally UNTOUCHED; SiteNav
+   now reads --nav-* for every colour and the two zone blocks below re-point ONLY
+   those token VALUES at the sky/note ramps (P7 — ramp tokens only, no new hexes
+   outside the @property mirrors above).
+
+   Invariants the zone values must keep (measured in US-1611, worst case = the
+   plate/anchor over the zone's brightest possible backdrop):
+   • The band stays DARK in EVERY zone — the chassis mixes each ramp's DARKEST
+     chroma (--nav-tint) into the shared --mx-void base, so anchor + plate
+     contrast stays SURFACE-INTERNAL exactly as US-1101/US-1102 established.
+   • Anchor labels stay --mx-void in ALL zones; each zone's anchor FILL is picked
+     so void-on-fill clears 4.5:1 — matrix --mx-green 14.7:1, sky --sky-blue
+     9.0:1, note --note-accent 6.4:1 (hover fills are brighter still).
+   • Plate faces stay ≥ 88 % void in every zone (a plate straddles the header's
+     bottom border onto page content, so its label floor must stay
+     surface-internal — the US-1102 hard floor). Only the plate LABEL/BORDER hue
+     moves per zone: sky takes a LIGHT sky token (--sky-haze, 16.6:1 on the void
+     face), NEVER --sky-ink on void; note takes --note-hi (17.9:1).
+   • --focus-ring is untouched (US-046): the nav is a dark surface in every zone,
+     so it keeps the bright root ring.
+   Retune the chassis HERE, never inside SiteNav's scoped styles. */
+:root {
+  /* Seeds — the two hues every derived token mixes from, plus the shared void
+     base (the band's darkness is a zone-independent invariant, so --nav-base is
+     never overridden). */
+  --nav-base: var(--mx-void);
+  --nav-tint: var(--mx-green-far);
+  --nav-glow: var(--mx-green);
+
+  /* Chassis (::before FILL group) — base gradient stops, CRT streaks, node dots. */
+  --nav-band-top: color-mix(in srgb, var(--nav-tint) 40%, var(--nav-base));
+  --nav-band-mid: color-mix(in srgb, var(--nav-tint) 18%, var(--nav-base));
+  --nav-band-base: var(--nav-base);
+  --nav-streak: color-mix(in srgb, var(--nav-glow) 5%, transparent);
+  --nav-dot-core: var(--nav-glow);
+  --nav-dot-halo: var(--mx-green-dim);
+  --nav-dot-far: var(--nav-tint);
+
+  /* Chassis (::after LINE group) — the 15%/85% parting seams + the two 1px
+     horizontal edge lines (mask-compensated alphas live in SiteNav). */
+  --nav-seam: var(--nav-tint);
+  --nav-seam-lip: color-mix(in srgb, var(--nav-glow) 16%, transparent);
+  --nav-edge-top: color-mix(in srgb, var(--nav-glow) 70%, transparent);
+  --nav-edge-bottom: color-mix(in srgb, var(--nav-glow) 20%, transparent);
+
+  /* The REAL border-bottom (the straddle-probe reference — never a gradient)
+     and the exterior drop shadow. */
+  --nav-border: var(--nav-tint);
+  --nav-shadow: color-mix(in srgb, var(--nav-tint) 40%, transparent);
+
+  /* Row 1 — the FILLED anchors (US-1102). The label never role-swaps: it is
+     --mx-void in every zone, so the US-029 mid-blend trap cannot fire. */
+  --nav-anchor-fill: var(--mx-green);
+  --nav-anchor-fill-hover: var(--mx-green-hi);
+  --nav-anchor-label: var(--mx-void);
+  --nav-anchor-edge: var(--mx-green-dim);
+
+  /* Row 2 — the GHOST plates. The face is the ≥ 88 % void hard floor (shared by
+     every zone); border/label/shadow carry the zone hue. */
+  --nav-plate-face: color-mix(in srgb, var(--mx-void) 90%, transparent);
+  --nav-plate-shadow: color-mix(in srgb, var(--nav-tint) 40%, transparent);
+  --nav-plate-border: var(--mx-green-dim);
+  --nav-plate-border-hover: var(--mx-green);
+  --nav-plate-label: var(--mx-green);
+  --nav-plate-label-hi: var(--mx-green-hi);
+  /* Dormant Download-CV control (US-1601 gated it off; the rules stay verbatim
+     so the flip is one line — these keep them token-driven too). */
+  --nav-plate-label-dim: var(--mx-green-dim);
+  --nav-badge-border: var(--mx-green-far);
+}
+[data-theme='sky'] {
+  --nav-tint: var(--sky-ink);
+  --nav-glow: var(--sky-blue);
+  --nav-dot-halo: var(--sky-blue);
+  --nav-anchor-fill: var(--sky-blue);
+  --nav-anchor-fill-hover: var(--sky-haze);
+  --nav-anchor-edge: var(--sky-ink);
+  --nav-plate-border: var(--sky-blue);
+  --nav-plate-border-hover: var(--sky-cloud);
+  --nav-plate-label: var(--sky-haze);
+  --nav-plate-label-hi: var(--sky-cloud);
+  --nav-plate-label-dim: var(--sky-blue);
+  --nav-badge-border: var(--sky-ink);
+}
+[data-theme='note'] {
+  --nav-tint: var(--note-far);
+  --nav-glow: var(--note-accent);
+  --nav-dot-halo: var(--note-mid);
+  --nav-anchor-fill: var(--note-accent);
+  --nav-anchor-fill-hover: var(--note-head);
+  --nav-anchor-edge: var(--note-mid);
+  --nav-plate-border: var(--note-accent);
+  --nav-plate-border-hover: var(--note-head);
+  --nav-plate-label: var(--note-hi);
+  --nav-plate-label-hi: var(--note-head);
+  --nav-plate-label-dim: var(--note-mid);
+  --nav-badge-border: var(--note-far);
+}
+
+/* --- Base consumption (themed) ------------------------------------------------
+   The opaque themed bg sits on <html> so the z-index:-1 WebGL/poster backdrop
+   paints above it but behind content (US-007). Body text + the display heading
+   face follow the active theme. Section bodies still set their own ramp colours
+   for the over-rain panels (P6); these are the page-level defaults. */
+html {
+  background: var(--bg);
+  /* Lenis is the sole scroll authority under full motion; browser scroll
+     anchoring only fights it. Residual reflows (late font-swap, lazy gallery
+     images) trigger anchoring to yank scrollY — the US-045 documented bottom
+     jitter (requested 15700 → actual 14529). Disable it so Lenis owns scroll. */
+  overflow-anchor: none;
+  /* Token-layer CROSSFADE (US-029, manual §6.3). The zone observer flips
+     `data-theme` at each boundary (9→10, 10→11, 11→12); these transitions ease
+     the tokens + the html surface across the window so chrome/text/surfaces
+     shift with the scene rather than hard-cutting. Reverse scrolling re-flips
+     data-theme and the same transitions run backwards → symmetric (AC3).
+     DEFAULT = the ≤150ms collapsed fade (the reduced-motion path, AC4/P5); the
+     full ~700ms eased window lives behind no-preference below — so the gate is
+     in THIS story, not deferred to US-030.
+     US-1611 adds the registered --nav-* chassis seeds to the SAME window so the
+     sticky header crossfades with the page instead of snapping (the derived
+     color-mix() --nav-* tokens re-resolve every frame from these). */
+  transition:
+    --bg 150ms linear,
+    --fg 150ms linear,
+    --accent 150ms linear,
+    --nav-tint 150ms linear,
+    --nav-glow 150ms linear,
+    --nav-dot-halo 150ms linear,
+    --nav-anchor-fill 150ms linear,
+    --nav-anchor-fill-hover 150ms linear,
+    --nav-anchor-edge 150ms linear,
+    --nav-plate-border 150ms linear,
+    --nav-plate-border-hover 150ms linear,
+    --nav-plate-label 150ms linear,
+    --nav-plate-label-hi 150ms linear,
+    background-color 150ms linear;
+}
+body {
+  color: var(--fg);
+  font-family: var(--font-body);
+  transition: color 150ms linear;
+}
+h1,
+h2 {
+  font-family: var(--font-display);
+}
+/* Static Sky register for the aeronautics heading (US-307). --font-display is now
+   permanently mono, so the aero h2's technical-sans face is pinned here by
+   id+class specificity (0,1,1 > the 0,0,2 h1,h2 element rule) — Saira in EVERY
+   theme, independent of the data-theme flip, so the "type switches in the Sky
+   register" AC (US-041) holds WITHOUT the layout-shifting global font swap. The
+   US-029 green-on-void plate on .section__title (colour/background/padding) is
+   untouched; music/other h2s stay mono via the element rule above. */
+#aeronautics .section__title {
+  font-family: var(--font-sky-display);
+}
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+/* The full ~700 ms eased token/type crossfade (US-029) applies in full-motion
+   mode — the default for everyone. The calm version (data-motion='reduced') keeps
+   the ≤150 ms collapsed fade declared on the base `html`/`body` rules above. The
+   gate is the resolved `data-motion` attribute, NOT the OS media query. */
+html[data-motion='full'] {
+  transition:
+    --bg 700ms ease,
+    --fg 700ms ease,
+    --accent 700ms ease,
+    --nav-tint 700ms ease,
+    --nav-glow 700ms ease,
+    --nav-dot-halo 700ms ease,
+    --nav-anchor-fill 700ms ease,
+    --nav-anchor-fill-hover 700ms ease,
+    --nav-anchor-edge 700ms ease,
+    --nav-plate-border 700ms ease,
+    --nav-plate-border-hover 700ms ease,
+    --nav-plate-label 700ms ease,
+    --nav-plate-label-hi 700ms ease,
+    background-color 700ms ease;
+}
+html[data-motion='full'] body {
+  transition: color 700ms ease;
+}
+
+/* --- Keyboard focus ring — theme-aware, SURFACE-scoped (US-046, §13/US-H2) ----
+   One token drives every keyboard focus ring so it stays visible against EVERY
+   theme surface (AC2: green-on-black, sky-light, note). It is scoped to the
+   SURFACE the focused control sits on, NOT the page `data-theme`: the root
+   default is the bright phosphor, correct for all the DARK surfaces — the Matrix
+   chrome/panels, the sticky nav (which keeps its own ~void background over ANY
+   zone, so it must NOT follow the page theme), and the Note content panel. The
+   only LIGHT surface, the Sky content panel (.aero, US-041), overrides this token
+   to the dark sky ink where it lives, so a ring there contrasts the haze. Plain
+   var (NOT @property): the ring colour must switch instantly, never crossfade.
+
+   `:focus-visible` (not `:focus`) shows the ring for keyboard/AT users without it
+   flashing on a mouse click. Low specificity (0,1,0) ⇒ it is the SAFETY NET that
+   guarantees a visible ring on every focusable control that lacks an explicit
+   rule (native radios, <audio>, <summary>, the iframe, any future content);
+   components that need a different offset (the inset CodeMirror/Sandpack editors,
+   the 3px link rings) keep their own more-specific rule. The skip target's
+   `main:focus{outline:none}` (0,1,1) also still wins — programmatic focus, no
+   ring by design. CAVEAT (US-1701): "without flashing on a mouse click" holds
+   for buttons and links, NOT for TEXT INPUTS — by spec an input matches
+   :focus-visible on ANY focus, click included, so a bare shell input inside a
+   chrome-less surface gets boxed the moment it is clicked. The hero terminal
+   input opts out in PageBody's global block (0,3,0) and replaces the cue at the
+   WINDOW level; do the same for any future bare input rather than weakening
+   this catch-all. Palette tokens only (P7). */
+:root {
+  --focus-ring: var(--mx-green-hi);
+}
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* --- Sticky-header clearance (US-902) ----------------------------------------
+   ONE responsive token consumed by every `scroll-margin-top` (Section anchors,
+   the skip-link main target, the hero) so anchor jumps land titles clear of the
+   carved bracelet band PLUS the protruding half of the control plates that
+   straddle its bottom edge. The band wraps taller at narrow widths (nav cells
+   up to 3 rows + plates up to 2 rows in ES), so the clearance steps down as the
+   rows unwrap: single-row band ≈ 75px + 16px plate overhang from ~760px up
+   (ES "Investigación…Contacto" is the long pole), two-row band in the mid
+   range, worst-case 360px ES ≈ 176px + overhang. Retune HERE if the band's
+   metrics change — never per-consumer. */
+:root {
+  --header-clearance: 14rem;
+}
+@media (min-width: 560px) {
+  :root {
+    --header-clearance: 11rem;
+  }
+}
+@media (min-width: 760px) {
+  :root {
+    --header-clearance: 7.5rem;
+  }
+}
+
+/* --- Alien-mode visually-hidden final (US-1202) --------------------------------
+   The content-block pair pattern's screen-reader half: while a matrix-register
+   prose block sits encoded, each of its text nodes is replaced at runtime by
+   <span aria-hidden data-alien-slot>scramble</span><span class="alien-sr"
+   data-alien-final>final</span> — the slot is the visual, this class keeps the
+   REAL text in the accessibility tree (and in link accnames) throughout.
+   Runtime-created spans carry NO Astro scoped cid (the US-036/cloneNode
+   boundary), so this utility MUST live here, global. Absolutely positioned +
+   1px + clipped ⇒ it never contributes to the host's pinned geometry (the
+   zero-CLS measure) and never paints. Not copy — ZERO P8 strings. */
+.alien-sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

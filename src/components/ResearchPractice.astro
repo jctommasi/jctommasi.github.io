@@ -1,0 +1,403 @@
+---
+/**
+ * ResearchPractice (US-606) — the per-chapter practice-widget region, extracted
+ * from PageBody so the home #research cards AND the US-605 reader pages render
+ * the SAME markup/styles/loader from one source (props: chapter, locale,
+ * strings — the call sites stay thin).
+ *
+ * One block renders, selected by chapter.practiceType:
+ *   — codemirror (US-034): static <pre> upgraded to an editable CodeMirror view
+ *     on approach, + the nested US-037 detection mapping below the editor.
+ *
+ * The US-035 quiz and US-036 sandpack branches were REMOVED in US-1605 with the
+ * chapters that used them (owner call 2026-08-07 — only chapter 01 stays
+ * published); their widget modules + content modules were deleted and the
+ * `@codesandbox/sandpack-client` dependency uninstalled. A future practiceType
+ * is a new branch here + one registry line in ./practice/loader.ts.
+ *
+ * The [data-practice] dispatch lives in ./practice/loader.ts, pulled in by the
+ * processed <script> below — Astro hoists + dedupes it per page, so any page
+ * rendering this partial ships exactly one tiny loader bootstrap; the widget
+ * module stays a dynamic import() (code-split, lazy, never in the initial
+ * bundle — gate:js).
+ *
+ * The static <pre> is the no-JS state (progressive enhancement); the
+ * fixed-height body is the zero-CLS guard (US-034). All styles for this DOM
+ * live HERE (the Astro scoped-cid boundary — PageBody's scoped rules can't
+ * reach a child component's markup); the runtime-created CodeMirror DOM is
+ * styled in the <style is:global> block below.
+ */
+import type { Locale } from '../i18n';
+import type { CollectionEntry } from 'astro:content';
+import { pick, loadStrings } from '../i18n';
+// US-034/US-037: defensively-framed CodeMirror snippets + detection mappings
+// for the `practiceType: 'codemirror'` chapters.
+import { codemirrorSnippets } from './practice/snippets';
+// US-607: build-time Shiki highlighting for the static code blocks. Server-only
+// (frontmatter import) — the emitted HTML carries the token <span>s with the
+// shiki-matrix palette hexes; zero client JS enters any chunk (gate:js).
+import { detectionLang, highlightCode } from '../theme/code-highlight';
+
+type Chapter = CollectionEntry<'research-chapters'>['data']['chapters'][number];
+type SiteStrings = Awaited<ReturnType<typeof loadStrings>>;
+
+interface Props {
+  locale: Locale;
+  chapter: Chapter;
+  strings: SiteStrings;
+}
+const { locale, chapter, strings } = Astro.props;
+
+// US-034: the per-chapter practice widget, selected by practiceType. The
+// loader dispatches by data-practice-type; `snippet` narrows to defined inside
+// its `{snippet && …}` guard, so no non-null assertion is needed.
+const snippet =
+  chapter.practiceType === 'codemirror' ? codemirrorSnippets[chapter.id] : undefined;
+
+// US-607: pre-render the highlighted <pre> blocks. Shiki emits its own <pre>,
+// so each call passes the EXISTING class back in via a transformer — the widget
+// querySelectors ('.research__practice-pre') and the fixed-height/zero-CLS
+// boxes are untouched, and the <pre> textContent stays byte-identical to the
+// source code string (the textContent contract — the CodeMirror mount keeps
+// reading it as the editor buffer). Detection rule langs map from
+// the format label (KQL→kusto, Sigma→yaml, SPL→splunk).
+const snippetHtml = snippet
+  ? await highlightCode(snippet.code, snippet.lang, 'research__practice-pre')
+  : '';
+const detectionRuleHtmls = snippet
+  ? await Promise.all(
+      snippet.detection.detections.map((detection) =>
+        highlightCode(detection.rule, detectionLang(detection.format), 'research__detection-pre'),
+      ),
+    )
+  : [];
+---
+
+{/* US-034: the practice widget region. data-practice + the
+   data-practice-* attributes are the framework's contract — the
+   loader (script below) reads them on approach and mounts the
+   matching widget. The static <pre> is the no-JS fallback AND
+   the CLS guard: the body reserves its height (--practice-lines)
+   so the editor mounts into the same box with no layout shift.
+   data-practice-label composes the editor's accessible name from
+   the (parity-checked) practice.label + the chapter title. */}
+{snippet && (
+  <div
+    class="research__practice"
+    data-practice
+    data-practice-type="codemirror"
+    data-practice-lang={snippet.lang}
+    data-practice-label={`${strings.practice.label} — ${pick(locale, chapter.title)}`}
+    style={`--practice-lines: ${snippet.code.split('\n').length}`}
+  >
+    <div class="research__practice-head">
+      <span class="research__practice-label">{strings.practice.label}</span>
+      <span class="research__practice-lang" aria-hidden="true">{snippet.lang}</span>
+    </div>
+    <div class="research__practice-body" data-practice-mount>
+      <Fragment set:html={snippetHtml} />
+    </div>
+    <p class="research__practice-hint" id={`practice-hint-${chapter.id}`}>
+      {strings.practice.editorHint}
+    </p>
+    {/* US-037: the detection mapping — the purple-team pairing
+       that makes the posture in cv.json demonstrated, not claimed
+       (P2/§9.5). The offensive concept in the editor above is
+       paired here with ≥1 MITRE ATT&CK/ATLAS technique ID and ≥1
+       blue-team detection rule (Sysmon/SPL/KQL/Sigma). The labels
+       are <p>/<figcaption>, NOT headings, so the heading invariant
+       is unchanged. Technique IDs/names and the rule bodies are
+       language-agnostic data (US-003 — official MITRE terms +
+       query syntax repeat in both locales); only the chrome labels
+       are P8. Technique links are external → the US-022 convention
+       (target=_blank, rel=noopener, aria-hidden ↗ new-tab cue).
+       The bilingual note is the only content read via pick(). */}
+    <div class="research__detection">
+      <p class="research__detection-title">
+        {strings.practice.detectionTitle}
+      </p>
+      <p class="research__detection-subtitle">
+        {strings.practice.techniquesLabel}
+      </p>
+      <ul class="research__detection-techniques">
+        {snippet.detection.techniques.map((technique) => (
+          <li class="research__detection-technique">
+            <a
+              class="research__detection-link"
+              href={technique.url}
+              target="_blank"
+              rel="noopener"
+            >
+              <span class="research__detection-id">{technique.id}</span>
+              <span class="research__detection-name">{technique.name}</span>
+              <span class="research__detection-ext" aria-hidden="true">↗</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      {snippet.detection.detections.map((detection, di) => (
+        <figure class="research__detection-rule">
+          <figcaption class="research__detection-format">
+            {strings.practice.detectionRuleLabel} · {detection.format}
+          </figcaption>
+          <Fragment set:html={detectionRuleHtmls[di]} />
+        </figure>
+      ))}
+      <p class="research__detection-note">
+        {pick(locale, snippet.detection.note)}
+      </p>
+    </div>
+  </div>
+)}
+
+{/* The [data-practice] dispatch (US-034, extracted US-606). Processed →
+    bundled + hoisted + deduped per page: every partial instance shares ONE
+    loader bootstrap; the widget module stays a lazy dynamic import. */}
+<script>
+  import './practice/loader';
+</script>
+
+<style>
+  /* Typography reset (US-603): the widget/detection DOM opts out of the
+     .section__body justify+hyphens register (terminals/forms are never
+     justified); inheritance carries the reset into the runtime-created
+     cid-less CodeMirror DOM. On the reader pages (no .section__body)
+     this is simply the neutral default. hyphens:manual (not none) keeps an
+     explicit &shy; honest if ever authored. */
+  .research__practice,
+  .research__detection {
+    text-align: start;
+    -webkit-hyphens: manual;
+    hyphens: manual;
+  }
+
+  /* US-034: the per-chapter practice widget region. Sits between the tags and
+     the audio/transcript footer. Palette tokens only (P7). */
+  .research__practice {
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--mx-green-far);
+  }
+  /* Caption row: a non-heading label (heading invariant unchanged) + the
+     language badge. */
+  .research__practice-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .research__practice-label {
+    color: var(--mx-green);
+    font-size: clamp(0.78rem, 1.3vw, 0.88rem);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  /* Language badge (decorative cue → aria-hidden in markup). */
+  .research__practice-lang {
+    color: var(--mx-green-mid);
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    text-transform: lowercase;
+    border: 1px solid var(--mx-green-far);
+    border-radius: 999px;
+    padding: 0.05rem 0.5rem;
+  }
+  /* The editor box. THE CLS GUARD: its height is reserved from --practice-lines
+     (server-set per snippet) so the static <pre> and the mounted CodeMirror view
+     occupy the SAME fixed box — no layout shift on hydration (AC2). Both the
+     <pre> and the editor are height:100% + scroll internally, so a long snippet
+     scrolls inside this box rather than growing the card or the document. */
+  .research__practice-body {
+    height: calc(var(--practice-lines, 12) * 1.45rem + 1.4rem);
+    min-height: 8rem;
+    max-height: 26rem;
+    max-width: 100%;
+    border: 1px solid var(--mx-green-far);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--surface-code);
+  }
+  /* Esc moves focus here (set tabindex=-1 in JS) so the editor is never a focus
+     trap (AC5); show a ring when that happens. */
+  .research__practice-body:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  /* NOTE (US-607): the .research__practice-pre rules moved to the
+     <style is:global> block below — the pre is now Shiki-emitted raw HTML
+     (set:html), which carries NO data-astro-cid, so a scoped rule can't match
+     it (the same boundary as the runtime-created .cm-* DOM). */
+  /* The mounted CodeMirror view fills the reserved box (height via the theme). */
+  .research__practice-body .cm-editor {
+    height: 100%;
+  }
+  /* Keyboard hint: real shown text ⇒ ≥4.5:1 (P6, --mx-green-mid ≈7.8:1 on void),
+     also wired to the editor via aria-describedby so AT announces how to leave. */
+  .research__practice-hint {
+    margin: 0.5rem 0 0;
+    color: var(--mx-green-mid);
+    font-size: clamp(0.72rem, 1.2vw, 0.8rem);
+    letter-spacing: 0.02em;
+  }
+
+  /* US-037: the per-chapter detection mapping — the purple-team pairing rendered
+     below the editor (the offensive concept → its MITRE technique IDs + a paired
+     detection rule). A hairline divider sets it apart as the blue-team half of
+     the card. Palette tokens only (P7); no headings (heading invariant holds). */
+  .research__detection {
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--mx-green-far);
+  }
+  /* Block label (a non-heading <p>) — the uppercase caption style of the widget
+     head, so the two halves of the card read as a set. */
+  .research__detection-title {
+    margin: 0 0 0.6rem;
+    color: var(--mx-green);
+    font-size: clamp(0.78rem, 1.3vw, 0.88rem);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .research__detection-subtitle {
+    margin: 0 0 0.4rem;
+    color: var(--mx-green-mid);
+    font-size: clamp(0.74rem, 1.2vw, 0.82rem);
+    letter-spacing: 0.03em;
+  }
+  /* Techniques: an unordered set of external links to the official MITRE pages
+     (no ranking ⇒ <ul>, no numbering). Each pill wraps long names so the row
+     never forces h-scroll at 360px (the US-018/US-020 short-set pattern). */
+  .research__detection-techniques {
+    list-style: none;
+    margin: 0 0 0.9rem;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .research__detection-technique {
+    max-width: 100%;
+  }
+  /* The technique link — id + canonical name + an aria-hidden ↗ new-tab cue
+     (US-022 external-link convention; accessible name = "id name"). --mx-green-hi
+     over the ~98%-void card composite stays ≥4.5:1 (P6); brightens on hover. */
+  .research__detection-link {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    max-width: 100%;
+    padding: 0.2rem 0.6rem;
+    background: var(--surface-card);
+    border: 1px solid var(--mx-green-dim);
+    border-radius: 6px;
+    color: var(--mx-green-hi);
+    text-decoration: none;
+    font-size: clamp(0.74rem, 1.3vw, 0.84rem);
+    line-height: 1.5;
+    overflow-wrap: break-word;
+  }
+  .research__detection-link:hover,
+  .research__detection-link:focus-visible {
+    color: var(--mx-green);
+    border-color: var(--mx-green);
+  }
+  .research__detection-link:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .research__detection-id {
+    flex: none;
+    color: var(--mx-green);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .research__detection-name {
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  .research__detection-ext {
+    flex: none;
+    font-size: 0.85em;
+  }
+  /* The paired detection rule (Sysmon/SPL/KQL/Sigma). A captioned <figure>; the
+     <pre> scrolls long lines INTERNALLY (overflow-x:auto + the grid track's
+     minmax(0,1fr)) so a wide query never grows the document at 360px (US-027).
+     The .research__detection-pre rules live in <style is:global> below (the
+     Shiki-emitted pre carries no cid — US-607). */
+  .research__detection-rule {
+    margin: 0 0 0.9rem;
+  }
+  .research__detection-format {
+    margin-bottom: 0.35rem;
+    color: var(--mx-green-mid);
+    font-size: clamp(0.72rem, 1.2vw, 0.8rem);
+    letter-spacing: 0.02em;
+  }
+  /* The bilingual glue: what the detection catches / why it pairs. Real shown
+     text ⇒ ≥4.5:1 (--mx-green-hi over the ~98%-void composite, P6). */
+  .research__detection-note {
+    margin: 0;
+    color: var(--mx-green-hi);
+    font-size: clamp(0.8rem, 1.4vw, 0.92rem);
+    line-height: 1.65;
+    overflow-wrap: break-word;
+  }
+</style>
+
+<style is:global>
+  /* US-607: the static code <pre>s are Shiki-emitted raw HTML (set:html) — no
+     data-astro-cid, so their rules MUST be global (the .cm-* precedent). The
+     transformer re-adds these classes to Shiki's own <pre>; token colours ride
+     as inline span styles from shiki-matrix.ts (the theme.css mirror — the
+     amber/cyan accents are the P7-amendment code-block-only tokens), the
+     surface + default text colour stay CSS-owned here (--surface-code, 94%
+     void, so the accents pop; every code block sits on the card-over-panel
+     composite, where even green-dim comments hold ≥4.5:1 — P6, US-601 rule). */
+  /* The static fallback / pre-hydration code. Styled to match the editor surface
+     (same font, colour, scroll) so the upgrade to CodeMirror is seamless. No-JS
+     readers see this readable, highlighted snippet (progressive enhancement). */
+  .research__practice-pre {
+    margin: 0;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: auto;
+    padding: 0.7rem 0.85rem;
+    font-family: var(--font-body);
+    font-size: clamp(0.78rem, 1.5vw, 0.88rem);
+    line-height: 1.6;
+    color: var(--mx-green-hi);
+    tab-size: 2;
+    white-space: pre;
+  }
+  .research__detection-pre {
+    margin: 0;
+    max-width: 100%;
+    max-height: 18rem;
+    box-sizing: border-box;
+    overflow: auto;
+    padding: 0.7rem 0.85rem;
+    background: var(--surface-code);
+    border: 1px solid var(--mx-green-far);
+    border-radius: 4px;
+    font-family: var(--font-body);
+    font-size: clamp(0.74rem, 1.4vw, 0.84rem);
+    line-height: 1.6;
+    color: var(--mx-green-hi);
+    tab-size: 2;
+    white-space: pre;
+  }
+
+  /* US-034: CodeMirror injects its caret-blink animation under .cm-cursor*
+     classes, which are NOT Astro-scoped (the editor DOM is created at runtime).
+     Gate that motion behind the resolved preference (P5): when the visitor opted
+     into the calm version (data-motion='reduced'), the caret stays solid (no
+     blink). The editor itself still loads — it is content/interaction, not
+     gratuitous motion. This is the only CodeMirror style that must be global;
+     everything else is themed via EditorView.theme with --mx-* tokens (P7). */
+  html[data-motion='reduced'] .cm-cursor,
+  html[data-motion='reduced'] .cm-cursor-primary,
+  html[data-motion='reduced'] .cm-cursor-secondary {
+    animation: none !important;
+  }
+</style>

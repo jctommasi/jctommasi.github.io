@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Juan Cruz Tommasi">
+  <!-- Matrix-rain mark: three falling-glyph columns, bright head fading to deep
+       green over the void. Drawn as vector rects (no font dependency, crisp at
+       16px). Palette = the mx ramp tokens only (P7). NOTE: no double-hyphen in
+       this comment: SVG consumed as an image is parsed as strict XML, where a
+       double-hyphen inside a comment is a fatal parse error. -->
+  <rect width="32" height="32" rx="6" fill="#050805"/>
+  <g>
+    <rect x="5"  y="5"  width="4" height="4" fill="#c7ffd0"/>
+    <rect x="5"  y="11" width="4" height="4" fill="#00ff41"/>
+    <rect x="5"  y="17" width="4" height="4" fill="#00b82e"/>
+    <rect x="5"  y="23" width="4" height="4" fill="#003b00"/>
+    <rect x="14" y="9"  width="4" height="4" fill="#c7ffd0"/>
+    <rect x="14" y="15" width="4" height="4" fill="#00ff41"/>
+    <rect x="14" y="21" width="4" height="4" fill="#00b82e"/>
+    <rect x="23" y="3"  width="4" height="4" fill="#c7ffd0"/>
+    <rect x="23" y="9"  width="4" height="4" fill="#00ff41"/>
+    <rect x="23" y="15" width="4" height="4" fill="#00b82e"/>
+    <rect x="23" y="21" width="4" height="4" fill="#003b00"/>
+  </g>
+</svg>

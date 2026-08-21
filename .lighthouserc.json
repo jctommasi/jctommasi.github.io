@@ -1,0 +1,31 @@
+{
+  "ci": {
+    "collect": {
+      "comment": "US-048 reconciliation: the leftover config pointed at a different, multi-page architecture (/en/, /es/about/, /es/research/<slug>/ …) that does not exist here — this is a single-page site with exactly two routes, / (EN) and /es/ (ES). staticDistDir serves the built dist/ and auto-discovers both index.html pages, so no stale URL can 404 the run.",
+      "staticDistDir": "./dist",
+      "numberOfRuns": 1,
+      "settings": {
+        "preset": "desktop"
+      }
+    },
+    "assert": {
+      "assertMatrix": [
+        {
+          "comment": "Desktop budgets (manual §2 success metrics / §14): Performance >= 90 and LCP < 2.5 s, plus the Accessibility >= 95 metric (US-049/US-050) and a CLS guard. Applies to both single-page routes. The MOBILE budgets (Performance >= 80, LCP < 4 s) live in .lighthouserc.mobile.json. The initial-JS <= 250 KB gz ceiling is enforced separately and deterministically by `npm run gate:js` (scripts/gates/js-budget.mjs), which runs in CI before the artifact upload.",
+          "matchingUrlPattern": ".*",
+          "assertions": {
+            "categories:performance": ["error", { "minScore": 0.9 }],
+            "categories:accessibility": ["error", { "minScore": 0.95 }],
+            "largest-contentful-paint": ["error", { "maxNumericValue": 2500 }],
+            "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+            "total-blocking-time": ["warn", { "maxNumericValue": 300 }]
+          }
+        }
+      ]
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": "./.lighthouseci"
+    }
+  }
+}

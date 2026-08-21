@@ -1,0 +1,591 @@
+---
+/**
+ * ResearchArticle (US-605) — the dedicated per-chapter reader page body, shared
+ * by both locale routes (src/pages/research/[slug].astro + es/research/[slug])
+ * so only `locale` differs at the call site (the PageBody pattern).
+ *
+ * The site-width reading column (63.8rem, Section.astro's cap) on the shared
+* --surface-panel. Exactly ONE
+ * <h1> (the chapter title); an article that supplies `heading` blocks adds h2s
+ * under it, so the order is h1 → h2 with no skip either way.
+ *
+ * The article body is the `bodyBlocks` drop-in slot (mirrors transcriptText):
+ * ABSENT ⇒ the honest cta.articleBodyPending notice; present ⇒ rendered with
+ * ZERO code change. Four block kinds — heading, paragraph, code (Shiki at build
+ * time, US-607) and figure (evidence image, box reserved from the data's
+ * width/height ⇒ zero CLS by construction). Every prose field is read through
+ * resolveTodo(pick(...)), and a block whose text normalizes to null is DROPPED
+ * rather than rendered as a literal (P1); a figure with no alt is dropped too,
+ * since meaning must never rest on the image alone (P4).
+ *
+ * The chapter's interactive practice (US-606) renders via the shared
+ * ResearchPractice partial — the SAME markup/styles/loader as the home
+ * #research cards: the editor + nested US-037 detection mapping for the three
+ * `codemirror` chapters, the quiz for the two `quiz` chapters, the live
+ * sandbox for the `sandpack` chapter. The partial's loader bootstrap is the
+ * page's only practice JS (tiny, hoisted); the widget modules stay lazy
+ * dynamic imports mounted on approach, and the static <pre>/radio form is the
+ * no-JS state. The audio + transcript affordances reuse the US-032/US-033
+ * patterns verbatim.
+ *
+ * Prose (lead / body / transcript / detection note) is justified + hyphenated
+ * (the US-603 register — this content does NOT sit in a .section__body, so the
+ * rule is applied here); chrome (tags, links, code, labels) stays start-aligned
+ * per the same reset discipline.
+ */
+import type { Locale } from '../i18n';
+import type { CollectionEntry } from 'astro:content';
+import { pick, loadStrings, localizedPath } from '../i18n';
+import { resolveTodo } from '../data/todo';
+import { highlightCode } from '../theme/code-highlight';
+import ResearchPractice from './ResearchPractice.astro';
+
+type Chapter = CollectionEntry<'research-chapters'>['data']['chapters'][number];
+
+interface Props {
+  locale: Locale;
+  chapter: Chapter;
+}
+const { locale, chapter } = Astro.props;
+const strings = await loadStrings(locale);
+
+// The bodyBlocks drop-in slot (US-605; a block list since 2026-08-20): absent →
+// the honest pending notice. Every prose field still goes through resolveTodo,
+// so a stray {{TODO}} half normalizes to null and that block is DROPPED rather
+// than rendered as a literal (P1 — gate:todo can then never see it).
+type Block = NonNullable<Chapter['bodyBlocks']>[number];
+// One literal `kind` per member (never a union INSIDE a member) — that is what
+// makes this a discriminated union TS can narrow through the render branches.
+type RenderBlock =
+  | { kind: 'heading'; text: string }
+  | { kind: 'paragraph'; text: string }
+  | { kind: 'code'; lang: string; code: string; caption: string | null; html: string }
+  | { kind: 'figure'; src: string; width: number; height: number; alt: string; caption: string };
+
+async function resolveBlock(block: Block): Promise<RenderBlock | null> {
+  if (block.kind === 'heading' || block.kind === 'paragraph') {
+    const text = resolveTodo(pick(locale, block.text));
+    return text ? { kind: block.kind, text } : null;
+  }
+  if (block.kind === 'code') {
+    // Build-time Shiki on the shared matrix theme (US-607). Raw HTML gets no
+    // scoped cid, so .reader__code-pre is styled in the is:global block below.
+    const html = await highlightCode(block.code, block.lang, 'reader__code-pre');
+    return {
+      kind: 'code',
+      lang: block.lang,
+      code: block.code,
+      caption: block.caption ? resolveTodo(pick(locale, block.caption)) : null,
+      html,
+    };
+  }
+  const alt = resolveTodo(pick(locale, block.alt));
+  const caption = resolveTodo(pick(locale, block.caption));
+  // An evidence figure with no usable alt is dropped rather than shipped
+  // unlabelled (P4) — meaning must never depend on the image alone.
+  return alt && caption
+    ? { kind: 'figure', src: block.src, width: block.width, height: block.height, alt, caption }
+    : null;
+}
+
+const bodyBlocks: RenderBlock[] | null = chapter.bodyBlocks
+  ? (await Promise.all(chapter.bodyBlocks.map(resolveBlock))).filter(
+      (b): b is RenderBlock => b !== null,
+    )
+  : null;
+const hasBody = bodyBlocks !== null && bodyBlocks.length > 0;
+// US-032 audio pattern: {{TODO}} → null → the disabled "coming soon" control.
+const audioSrc = resolveTodo(chapter.audioUrl);
+// US-033 transcript pattern: absent slot → the honest pending message.
+const transcriptCopy = chapter.transcriptText
+  ? resolveTodo(pick(locale, chapter.transcriptText))
+  : null;
+---
+
+<main id="main-content" tabindex="-1" class="reader">
+  <article class="reader__article">
+    <header class="reader__head">
+      <a class="reader__back" href={localizedPath('/', locale)}>
+        <span class="reader__back-cue" aria-hidden="true">←</span>
+        {strings.cta.backToPortfolio}
+      </a>
+      <div class="reader__title-row">
+        {/* Decorative canonical-order cue (aria-hidden), the home-card idiom. */}
+        <span class="reader__index" aria-hidden="true">
+          {String(chapter.order).padStart(2, '0')}
+        </span>
+        <h1 class="reader__title">{pick(locale, chapter.title)}</h1>
+      </div>
+      <ul class="reader__tags">
+        {chapter.tags.map((tag) => <li class="reader__tag">{tag}</li>)}
+      </ul>
+    </header>
+
+    {/* The summary as the article lead (justified, US-603 register). */}
+    <p class="reader__lead">{pick(locale, chapter.summary)}</p>
+
+    {hasBody ? (
+        <div class="reader__body">
+          {bodyBlocks!.map((block) => {
+            if (block.kind === 'heading') return <h2 class="reader__h2">{block.text}</h2>;
+            if (block.kind === 'paragraph') return <p class="reader__body-text">{block.text}</p>;
+            if (block.kind === 'code') {
+              return (
+                <figure class="reader__code">
+                  <Fragment set:html={block.html} />
+                  {block.caption && <figcaption class="reader__figcaption">{block.caption}</figcaption>}
+                </figure>
+              );
+            }
+            return (
+              <figure class="reader__figure">
+                {/* width/height reserve the box ⇒ zero CLS by construction; the
+                    evidence is below the fold, so lazy + async costs nothing. */}
+                <img
+                  class="reader__figure-img"
+                  src={block.src}
+                  alt={block.alt}
+                  width={block.width}
+                  height={block.height}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption class="reader__figcaption">{block.caption}</figcaption>
+              </figure>
+            );
+          })}
+        </div>
+      ) : (
+        /* Honest pending affordance — the article copy is not written yet (P1/P3).
+           Readable --mx-green-hi (≥4.5:1 on the panel, P6), italic status note
+           (the transcriptPending idiom). */
+        <p class="reader__pending">{strings.cta.articleBodyPending}</p>
+      )
+    }
+
+    {/* US-606: the chapter's interactive practice — the shared ResearchPractice
+        partial (editor + nested US-037 detection mapping / quiz / sandpack, the
+        SAME region the home card renders; every chapter has exactly one
+        practiceType so exactly one block renders). Wrapped on a --surface-card
+        sub-panel: the region's mid-token captions (practice-lang, hint,
+        detection subtitle/format) need the card-over-panel composite to clear
+        4.5:1 (the US-601 audit — mid on the bare 80% panel is razor-thin; the
+        composite reads ≈7:1, the home-card footing reproduced). */}
+    <div class="reader__practice">
+      <ResearchPractice chapter={chapter} locale={locale} strings={strings} />
+    </div>
+
+    <footer class="reader__footer">
+      {audioSrc ? (
+          <div class="reader__audio-row">
+            <audio
+              class="reader__audio"
+              controls
+              preload="none"
+              src={audioSrc}
+              aria-label={`${strings.cta.listen} — ${pick(locale, chapter.title)}`}
+            />
+          </div>
+        ) : (
+          <div class="reader__audio-row">
+            <button
+              type="button"
+              class="reader__audio-btn"
+              disabled
+              aria-label={strings.cta.audioPending}
+            >
+              <span class="reader__audio-btn-icon" aria-hidden="true">▶</span>
+              <span class="reader__audio-btn-label">{strings.cta.listen}</span>
+              <span class="reader__audio-btn-badge" aria-hidden="true">
+                {strings.cta.comingSoon}
+              </span>
+            </button>
+          </div>
+        )
+      }
+      <details class="reader__transcript">
+        <summary class="reader__transcript-toggle">
+          <span class="reader__transcript-chevron" aria-hidden="true">▸</span>
+          <span class="reader__transcript-label">{strings.cta.readTranscript}</span>
+        </summary>
+        <div
+          class="reader__transcript-region"
+          role="region"
+          aria-label={`${strings.cta.readTranscript} — ${pick(locale, chapter.title)}`}
+        >
+          {transcriptCopy ? (
+              transcriptCopy.split(/\n{2,}/).map((para) => (
+                <p class="reader__transcript-text">{para}</p>
+              ))
+            ) : (
+              <p class="reader__transcript-pending">{strings.cta.transcriptPending}</p>
+            )
+          }
+        </div>
+      </details>
+    </footer>
+  </article>
+</main>
+
+<style>
+  /* The reading column: centered, generous vertical rhythm. Its width is the
+     SITE column (owner call 2026-08-20, "el mismo ancho de página que en todo
+     el sitio"): max-width 63.8rem + 1.5rem gutters = Section.astro's
+     .section__inner cap and .section padding verbatim — keep the two in sync
+     if that owner-tuned cap ever moves. The column
+     sits on the shared --surface-panel over the fixed rain backdrop (the reader
+     stays in the Matrix zone — the page has no aeronautics/music sections, so
+     the zone script leaves data-theme=matrix). Palette tokens only (P7). */
+  .reader {
+    display: block;
+    padding: 2.5rem 1.5rem 4.5rem;
+  }
+  .reader:focus {
+    outline: none; /* programmatic skip-link target, the main-content rule */
+  }
+  .reader__article {
+    box-sizing: border-box;
+    max-width: 63.8rem;
+    margin: 0 auto;
+    padding: clamp(1.4rem, 4vw, 2.5rem);
+    background: var(--crt-lines-matrix), var(--surface-panel);
+    border: 1px solid var(--mx-green-far);
+    border-radius: 6px;
+  }
+
+  /* Back to the portfolio — the reader's one navigation affordance. */
+  .reader__back {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    margin-bottom: 1.4rem;
+    color: var(--mx-green);
+    text-decoration: none;
+    font-size: clamp(0.8rem, 1.4vw, 0.9rem);
+    letter-spacing: 0.04em;
+  }
+  .reader__back:hover {
+    color: var(--mx-green-hi);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .reader__back:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  .reader__back-cue {
+    font-size: 0.9em;
+  }
+
+  /* Index + title on a shared baseline row (the home chapter-card idiom).
+     min-width:0 lets a long ES title wrap without forcing h-scroll. */
+  .reader__title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.8rem;
+    margin-bottom: 0.9rem;
+  }
+  .reader__index {
+    flex: none;
+    color: var(--mx-green);
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+    opacity: 0.85;
+  }
+  /* The single <h1> — the chapter title. Inherits the mono display face from the
+     global h1 rule; --mx-green on the 80% panel ≈13.8:1 (US-601 audit, P6). */
+  .reader__title {
+    min-width: 0;
+    margin: 0;
+    color: var(--mx-green);
+    font-size: clamp(1.25rem, 3.4vw, 1.8rem);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.35;
+    overflow-wrap: break-word;
+  }
+
+  /* Tag pills (language-agnostic identifiers, the US-031 chip idiom). */
+  .reader__tags {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .reader__tag {
+    max-width: 100%;
+    padding: 0.2rem 0.7rem;
+    background: var(--surface-card);
+    border: 1px solid var(--mx-green-dim);
+    border-radius: 999px;
+    color: var(--mx-green-hi);
+    font-size: clamp(0.72rem, 1.3vw, 0.82rem);
+    line-height: 1.5;
+    overflow-wrap: break-word;
+  }
+
+  /* The article lead (the chapter summary) — comfortable justified prose
+     (US-603 register: justify + hyphens, applied here because the reader is not
+     a .section__body). --mx-green-hi on the panel ≈10.7:1 (P6). */
+  .reader__lead {
+    margin: 1.6rem 0 0;
+    color: var(--mx-green-hi);
+    font-size: clamp(0.98rem, 1.9vw, 1.12rem);
+    line-height: 1.8;
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    overflow-wrap: break-word;
+  }
+
+  /* The full-article body (bodyBlocks drop-in): justified paragraphs, section
+     headings, evidence figures and code listings. */
+  .reader__body {
+    margin-top: 1.4rem;
+    border-top: 1px solid var(--mx-green-far);
+    padding-top: 1.4rem;
+  }
+
+  /* Section headings. The reader's ONLY sub-level: h1 (title) → h2, no skip.
+     --mx-green on the panel ≈8.9:1 (P6); the display face + the shared '> '
+     prompt cue match the site's section register without importing it. */
+  .reader__h2 {
+    margin: 2.2rem 0 0.9rem;
+    color: var(--mx-green);
+    font-family: var(--font-display);
+    font-size: clamp(1.02rem, 2.1vw, 1.2rem);
+    line-height: 1.45;
+    letter-spacing: 0.02em;
+    text-align: start;
+    overflow-wrap: anywhere;
+  }
+  .reader__h2::before {
+    content: '> ';
+    color: var(--mx-green-mid);
+  }
+  .reader__body > .reader__h2:first-child {
+    margin-top: 0;
+  }
+
+  /* Evidence figures. The box is RESERVED from the intrinsic width/height in the
+     data (aspect-ratio + height:auto), so a lazy image can never shift the
+     column — zero CLS by construction, never measured. */
+  .reader__figure,
+  .reader__code {
+    margin: 1.5rem 0;
+  }
+  .reader__figure-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    border: 1px solid var(--mx-green-far);
+    border-radius: 4px;
+    background: var(--surface-code);
+  }
+  /* Caption: chrome, so start-aligned + un-hyphenated (the US-603 split — only
+     prose justifies). --mx-green-hi at 78% reads ≈8:1 on the panel (P6). */
+  .reader__figcaption {
+    margin-top: 0.55rem;
+    color: color-mix(in srgb, var(--mx-green-hi) 78%, transparent);
+    font-size: clamp(0.78rem, 1.4vw, 0.86rem);
+    line-height: 1.6;
+    text-align: start;
+    hyphens: manual;
+    -webkit-hyphens: manual;
+    overflow-wrap: break-word;
+  }
+  .reader__body-text {
+    margin: 0 0 1.1rem;
+    color: var(--mx-green-hi);
+    font-size: clamp(0.94rem, 1.8vw, 1.05rem);
+    line-height: 1.85;
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    overflow-wrap: break-word;
+  }
+  .reader__body-text:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Honest pending notice while bodyText is absent (P1/P3). Real shown text ⇒
+     --mx-green-hi ≥4.5:1 (never the disabled-dim token); italic status note. */
+  .reader__pending {
+    margin: 1.4rem 0 0;
+    border-top: 1px solid var(--mx-green-far);
+    padding-top: 1.4rem;
+    color: var(--mx-green-hi);
+    font-size: clamp(0.88rem, 1.6vw, 0.98rem);
+    font-style: italic;
+    line-height: 1.7;
+    opacity: 0.85;
+  }
+
+  /* The practice region (US-606, the shared ResearchPractice partial) on a
+     --surface-card sub-panel so its mid-token captions sit on the
+     card-over-panel composite (US-601: mid on the bare panel is razor-thin —
+     the card composite reads ≈7:1, safe; the home-card footing reproduced).
+     The partial's own DOM carries the CHILD's scoped cid, so any override must
+     go through the scoped-parent + :global(descendant) pattern below. */
+  .reader__practice {
+    margin-top: 1.6rem;
+    padding: 0.2rem 1.1rem 1rem;
+    background: var(--surface-card);
+    border: 1px solid var(--mx-green-dim);
+    border-radius: 6px;
+  }
+  /* Inside the sub-panel the region's card-footer divider (border-top +
+     margin) is redundant chrome — the panel edge already frames it. */
+  .reader__practice :global(.research__practice) {
+    margin-top: 0;
+    border-top: 0;
+  }
+
+  /* Footer affordances: audio (US-032 pattern) + transcript (US-033 pattern). */
+  .reader__footer {
+    margin-top: 1.6rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--mx-green-far);
+  }
+  .reader__audio {
+    display: block;
+    width: 100%;
+    max-width: 28rem;
+    height: 2.4rem;
+    color-scheme: dark;
+    accent-color: var(--mx-green);
+  }
+  .reader__audio-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.85rem;
+    background: var(--surface-card);
+    border: 1px solid var(--mx-green-far);
+    border-radius: 4px;
+    color: var(--mx-green-dim);
+    font-family: inherit;
+    font-size: clamp(0.82rem, 1.4vw, 0.92rem);
+    letter-spacing: 0.03em;
+    cursor: not-allowed;
+  }
+  .reader__audio-btn-icon {
+    font-size: 0.75em;
+    line-height: 1;
+  }
+  .reader__audio-btn-label {
+    color: var(--mx-green-dim);
+  }
+  .reader__audio-btn-badge {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mx-green-dim);
+    border: 1px solid var(--mx-green-far);
+    border-radius: 999px;
+    padding: 0.05rem 0.45rem;
+  }
+  .reader__transcript {
+    margin-top: 0.75rem;
+  }
+  .reader__transcript-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.5rem 0.35rem 0;
+    color: var(--mx-green);
+    font-size: clamp(0.82rem, 1.4vw, 0.92rem);
+    letter-spacing: 0.03em;
+    list-style: none;
+    cursor: pointer;
+  }
+  .reader__transcript-toggle::-webkit-details-marker {
+    display: none;
+  }
+  .reader__transcript-toggle::marker {
+    content: '';
+  }
+  .reader__transcript-toggle:hover {
+    color: var(--mx-green-hi);
+  }
+  .reader__transcript-toggle:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+  /* Chevron end-state instant; only the transition is motion-gated (P5). */
+  .reader__transcript-chevron {
+    display: inline-block;
+    font-size: 0.8em;
+    line-height: 1;
+  }
+  .reader__transcript[open] .reader__transcript-chevron {
+    transform: rotate(90deg);
+  }
+  :global(html[data-motion='full']) .reader__transcript-chevron {
+    transition: transform 150ms ease;
+  }
+  .reader__transcript-region {
+    margin-top: 0.4rem;
+    padding: 0.6rem 0 0.2rem 0.85rem;
+    border-left: 2px solid var(--mx-green-dim);
+  }
+  /* Closed content keeps a layout box under content-visibility:hidden (the
+     US-033 gotcha) — remove it entirely while collapsed. */
+  .reader__transcript:not([open]) .reader__transcript-region {
+    display: none;
+  }
+  .reader__transcript-text {
+    margin: 0 0 0.7rem;
+    color: var(--mx-green-hi);
+    font-size: clamp(0.84rem, 1.45vw, 0.95rem);
+    line-height: 1.7;
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    overflow-wrap: break-word;
+  }
+  .reader__transcript-text:last-child {
+    margin-bottom: 0;
+  }
+  .reader__transcript-pending {
+    margin: 0;
+    color: var(--mx-green-hi);
+    font-size: clamp(0.82rem, 1.4vw, 0.92rem);
+    font-style: italic;
+    line-height: 1.6;
+    opacity: 0.85;
+  }
+</style>
+
+<style is:global>
+  /* THE set:html CID BOUNDARY (US-607): Shiki emits its own <pre>, injected via
+     <Fragment set:html>, so that element carries NO data-astro-cid and a scoped
+     rule can never match it — exactly like the .research__detection-pre
+     precedent. A transformer re-adds this class; CSS owns the surface.
+
+     A long listing scrolls INSIDE its own box (overflow:auto), so a wide line
+     can never push the reading column into a document h-scroll at 360px. */
+  .reader__code-pre {
+    margin: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: auto;
+    padding: 0.85rem 0.95rem;
+    background: var(--surface-code);
+    border: 1px solid var(--mx-green-far);
+    border-radius: 4px;
+    font-family: var(--font-body);
+    font-size: clamp(0.74rem, 1.4vw, 0.84rem);
+    line-height: 1.65;
+    color: var(--mx-green-hi);
+    tab-size: 4;
+    white-space: pre;
+  }
+</style>

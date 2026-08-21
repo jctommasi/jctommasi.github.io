@@ -1,0 +1,276 @@
+---
+/**
+ * SceneCanvas (US-007) — the full-viewport WebGL backdrop host.
+ *
+ * Renders a fixed, behind-content layer holding:
+ *   1. a `<canvas aria-hidden="true">` (P4 — the scene is decorative; all real
+ *      content lives in the semantic DOM and survives the canvas's removal), and
+ *   2. a lightweight, static CSS poster (Matrix ramp only, P7) shown until the
+ *      WebGL bundle is ready (manual §14).
+ *
+ * The bootstrap below lazy-loads the engine AFTER first paint via a dynamic
+ * `import()` (Three.js stays in a code-split chunk, never the initial bundle).
+ * The motion preference is read from `data-motion` on <html> (the in-page
+ * toggle, src/theme/motion): the full scene boots BY DEFAULT for everyone, and
+ * the engine is fetched UNLESS the visitor explicitly opted into the calm
+ * version (data-motion='reduced'), in which case the static poster IS the
+ * sanctioned visual (manual §7.4 kill-switch / P5). The OS prefers-reduced-motion
+ * is intentionally not the gate (the owner's product choice).
+ *
+ * US-008 wires the device-tier probe + context-failure fallback through here:
+ *   - the resolved tier (or a `?tier=high|medium|low` override) comes back from
+ *     `initEngine`;
+ *   - `?tier=fallback` forces the poster path without booting WebGL (a
+ *     deterministic forced-failure test hook), and a real context failure lands
+ *     on the same path;
+ *   - the live state (`active` / `fallback` / `reduced-motion`) + the tier are
+ *     published to a `data-webgl-state` attribute and `window.__WEBGL__` for
+ *     observability (the debug-flag AC). US-028 generalises the poster to all
+ *     three theme zones; US-030 stacks them as crossfading layers so a boundary
+ *     under reduced motion is a ≤150 ms opacity fade between the static posters
+ *     (no scene compositing, manual §6.3 / US-D3); US-047 hardens the full
+ *     fallback ladder + context loss.
+ */
+---
+
+<div class="scene-canvas" aria-hidden="true" data-webgl-state="pending">
+  <canvas id="webgl-canvas" class="scene-canvas__canvas" aria-hidden="true"></canvas>
+  {/* The static theme poster: an always-on Matrix base layer with the Sky and
+      Note-rain zone stills stacked over it. The zone observer (BaseLayout) flips
+      `data-theme` on <html>; the active zone's overlay fades in over the base, so
+      a boundary is a clean opacity crossfade. This is the pre-load, reduced-motion
+      and fallback visual; under RM the live scenes never composite, so this static
+      poster crossfade IS the boundary transition (US-028 stills, US-030 fade). */}
+  <div id="webgl-poster" class="scene-canvas__poster">
+    <div class="scene-canvas__zone scene-canvas__zone--matrix"></div>
+    <div class="scene-canvas__zone scene-canvas__zone--sky"></div>
+    <div class="scene-canvas__zone scene-canvas__zone--note"></div>
+  </div>
+</div>
+
+<script>
+  // `import type` is erased at build, so referencing these types here keeps the
+  // bootstrap tiny (Three only enters the lazy chunk via the dynamic import).
+  import type { DeviceTier, TierSource } from '../webgl/core/device-tier';
+  import type { EngineHandle } from '../webgl/core/engine';
+  // The motion gate — reads the resolved `data-motion` (the in-page toggle), NOT
+  // the OS media query: the full scene is the default for everyone (~30 bytes).
+  import { prefersReducedMotion } from '../theme/motion';
+
+  // The fallback-ladder rungs the host can land on (US-047, the §14 / US-H3
+  // ladder): `active` = a live scene (full/reduced per tier); `fallback` = the
+  // static theme posters (reduced-motion, forced, or a context-creation failure);
+  // `content-only` = no backdrop at all, just content over the void; `context-lost`
+  // = a runtime context loss, paused on the poster until it is restored.
+  type WebglState =
+    | 'pending'
+    | 'active'
+    | 'fallback'
+    | 'reduced-motion'
+    | 'content-only'
+    | 'context-lost';
+  interface WebglDebug {
+    state: WebglState;
+    tier: DeviceTier | null;
+    tierSource: TierSource | null;
+    reason?: 'forced' | 'context';
+  }
+  declare global {
+    interface Window {
+      __WEBGL__?: WebglDebug;
+    }
+  }
+
+  const host = document.querySelector('.scene-canvas');
+  const canvas = document.getElementById('webgl-canvas');
+  const poster = document.getElementById('webgl-poster');
+
+  // Debug observability (the `?tier=` debug-flag AC): mirror the resolved state
+  // to a `data-webgl-state` attribute (markup/CSS-observable) and the full tier
+  // object to `window.__WEBGL__` (rich, for CDP/dev inspection).
+  const publish = (state: WebglState, detail: Omit<WebglDebug, 'state'>) => {
+    if (host instanceof HTMLElement) host.dataset.webglState = state;
+    window.__WEBGL__ = { state, ...detail };
+  };
+
+  const tierParam = (new URLSearchParams(location.search).get('tier') || '').toLowerCase();
+
+  // The motion preference is the hard kill-switch: when the visitor opted into
+  // the calm version (data-motion='reduced') the static poster IS the visual, so
+  // the heavy WebGL chunk is never fetched (manual §7.4 / P5). The DEFAULT is
+  // full motion for everyone — the OS prefers-reduced-motion is NOT consulted
+  // here; only the explicit in-page toggle is (the owner's product choice).
+  const reduce = prefersReducedMotion();
+
+  if (reduce) {
+    publish('reduced-motion', { tier: null, tierSource: null });
+  } else if (tierParam === 'fallback') {
+    // Forced context failure (?tier=fallback): take the static-poster rung WITHOUT
+    // booting WebGL — the deterministic forced-failure test hook. Same observable
+    // end-state as the real context failure caught below.
+    publish('fallback', { tier: null, tierSource: null, reason: 'forced' });
+  } else if (tierParam === 'none' || tierParam === 'off' || tierParam === 'content') {
+    // Content-only rung (US-047, the §14 ladder floor): no WebGL AND no poster —
+    // the page content over the flat void. 100% of content is still present (the
+    // canvas + poster are aria-hidden decoration). Selectable for QA via ?tier=none.
+    poster?.classList.add('is-hidden');
+    publish('content-only', { tier: null, tierSource: null });
+  } else if (canvas instanceof HTMLCanvasElement) {
+    // Reveal the live canvas (poster fades out) once the first frame has drawn.
+    const revealCanvas = () =>
+      requestAnimationFrame(() => {
+        poster?.classList.add('is-hidden');
+        canvas.classList.add('is-ready');
+      });
+    // Bring the static poster back over the canvas (the runtime context-loss rung).
+    const showPoster = () => {
+      poster?.classList.remove('is-hidden');
+      canvas.classList.remove('is-ready');
+    };
+    let handle: EngineHandle | null = null;
+    const boot = async () => {
+      try {
+        const { initEngine } = await import('../webgl/core/engine');
+        // Pass the raw `?tier=` value through; the engine validates it (an
+        // invalid/absent value falls back to the heuristic probe). The hooks drive
+        // the poster fallback on a RUNTIME context loss (US-047, AC3) — degrade to
+        // the static poster, never a blank backdrop, never a crash.
+        handle = initEngine(canvas, tierParam || null, {
+          onContextLost() {
+            showPoster();
+            publish('context-lost', {
+              tier: handle?.tier ?? null,
+              tierSource: handle?.tierSource ?? null,
+              reason: 'context',
+            });
+          },
+          onContextRestored() {
+            revealCanvas();
+            publish('active', {
+              tier: handle?.tier ?? null,
+              tierSource: handle?.tierSource ?? null,
+            });
+          },
+        });
+        publish('active', { tier: handle.tier, tierSource: handle.tierSource });
+        revealCanvas();
+      } catch {
+        // Real WebGL context-creation failure (or chunk load error) → keep the
+        // poster, never blank; record the fallback so it stays observable.
+        publish('fallback', { tier: null, tierSource: null, reason: 'context' });
+      }
+    };
+    // Yield to first paint, then boot. requestIdleCallback keeps it off the
+    // critical path; the timeout guarantees it still runs on a busy main thread.
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(boot, { timeout: 1200 });
+    } else {
+      setTimeout(boot, 200);
+    }
+  }
+</script>
+
+<style>
+  .scene-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: -1; /* behind all DOM content; the html root paints the void below */
+    pointer-events: none; /* decorative: never intercept clicks or scroll */
+    overflow: hidden;
+    background: var(--mx-void);
+  }
+  .scene-canvas__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  /* The poster CONTAINER. Its opacity is the live-scene reveal switch (the engine
+     adds `.is-hidden` once Matrix draws its first frame); the stacked zone layers
+     inside it decide WHICH still shows. Default opacity 1 = never blank (P5). */
+  .scene-canvas__poster {
+    position: absolute;
+    inset: 0;
+    opacity: 1;
+  }
+  /* Per-zone stills (US-028, manual §6 / Appendix A; P7 ramp tokens only). Each is
+     a full-bleed, OPAQUE gradient. Matrix is the always-on base; Sky and Note-rain
+     stack over it and fade in for their zone, so a boundary is a clean opacity
+     crossfade with no show-through to the void beneath. */
+  .scene-canvas__zone {
+    position: absolute;
+    inset: 0;
+  }
+  .scene-canvas__zone--matrix {
+    /* Deep-green glow rising from the bottom over the void — the permanent base
+       (Matrix is the default zone and the floor the other stills composite onto).
+       US-055: a soft centred bloom is layered above it to evoke the live ripple
+       field's drop origin on the calm/pre-load poster (palette token only, P7). */
+    background:
+      radial-gradient(42% 38% at 50% 44%, var(--mx-green-far) 0%, transparent 70%),
+      radial-gradient(120% 78% at 50% 122%, var(--mx-green-far) 0%, transparent 66%),
+      var(--mx-void);
+    opacity: 1;
+  }
+  .scene-canvas__zone--sky {
+    /* Bright blue sky fading to haze, anchored by a warm sun glow at the horizon
+       (the two Sky core hexes). US-306: a faint SVT-terrain band hugs the bottom
+       so the calm/RM sky poster hints at the live G1000 synthetic-vision terrain
+       morph (the US-055 poster-nudge pattern applied to the aero zone; the
+       --sky-terrain-low token, P7). */
+    background:
+      radial-gradient(120% 30% at 50% 100%, var(--sky-terrain-low) 0%, transparent 60%),
+      radial-gradient(140% 62% at 50% 92%, var(--sky-sun) 0%, transparent 46%),
+      linear-gradient(to bottom, var(--sky-blue) 0%, var(--sky-haze) 82%);
+    opacity: 0;
+  }
+  .scene-canvas__zone--note {
+    /* Violet WebGL world (US-405) — void + the violet ramp, no green remnant.
+       US-055: a soft centred violet bloom echoes the live ripple drops' origin
+       (the --note-accent bright bloom over the deep --note-far ground; P7). */
+    background:
+      radial-gradient(38% 34% at 50% 44%, var(--note-accent) 0%, transparent 74%),
+      radial-gradient(120% 78% at 50% 122%, var(--note-accent) 0%, transparent 60%),
+      radial-gradient(120% 55% at 50% -12%, var(--note-far) 0%, transparent 52%),
+      var(--note-void);
+    opacity: 0;
+  }
+  /* The boundary crossfade between zone stills (US-030, manual §6.3 / US-D3).
+     DEFAULT = the calm collapse: a ≤150 ms opacity fade between the static
+     posters, with NO scene compositing (the engine never boots when the visitor
+     opted into the calm version, so this poster crossfade IS the boundary). The
+     full eased window is gated behind `html[data-motion='full']` below (the
+     US-029/§6.3 timing) — which is the default for everyone, so most visitors get
+     it; the collapsed fade is the calm fallback. P5 default-is-final-state. */
+  .scene-canvas__zone--sky,
+  .scene-canvas__zone--note {
+    transition: opacity 150ms linear;
+  }
+  :global([data-theme='sky']) .scene-canvas__zone--sky,
+  :global([data-theme='note']) .scene-canvas__zone--note {
+    opacity: 1;
+  }
+  .scene-canvas__poster.is-hidden {
+    opacity: 0;
+  }
+  /* Every zone now has a LIVE scene: Matrix (default), the Sky scene (US-040) in
+     the aeronautics zone, and the Note-rain scene (US-042) in the music zone — the
+     engine switches scenes on the `data-theme` flip (engine.ts). So once the engine
+     draws its first frame the poster simply fades out everywhere; NO keep-up
+     override remains (the US-040 Sky and US-042 Note `[data-theme] … .is-hidden`
+     overrides are both gone). The poster STAYS the reduced-motion / fallback rung —
+     under RM the engine never boots, `.is-hidden` is never added, so the per-zone
+     still simply remains up (US-030). The eased scene-to-scene crossfade (US-044)
+     lives entirely in the engine (SceneManager render-target compositing) — it needs
+     no markup here: once booted the poster is already faded out, so the live worlds
+     dissolve into each other on the one canvas while this poster stays the RM/fallback rung. */
+  /* The one-shot live-scene reveal fade (only the full-motion path adds `.is-hidden`). */
+  :global(html[data-motion='full']) .scene-canvas__poster {
+    transition: opacity 600ms ease;
+  }
+  /* Full-motion boundary: ease the zone still in over the full ~700 ms token
+     window (US-029) so the static poster shifts WITH the chrome, not snapping. */
+  :global(html[data-motion='full']) .scene-canvas__zone--sky,
+  :global(html[data-motion='full']) .scene-canvas__zone--note {
+    transition: opacity 700ms ease;
+  }
+</style>

@@ -1,0 +1,42 @@
+{
+  "name": "jctommasi.github.io",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Matrix-themed WebGL scrollytelling portfolio — Astro + Three.js/GLSL + Lenis, bilingual EN/ES, deployed to GitHub Pages.",
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=9.6.5"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "gate:i18n": "node scripts/gates/i18n-parity.mjs",
+    "gate:todo": "node scripts/gates/todo-lint.mjs",
+    "gate:js": "node scripts/gates/js-budget.mjs",
+    "gate": "npm run gate:i18n && npm run build && npm run gate:todo && npm run gate:js"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@types/node": "^22.19.21",
+    "@types/three": "^0.184.1",
+    "astro": "^6.4.6",
+    "shiki": "^4.3.1",
+    "typescript": "~5.9.3"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.10.3",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-markdown": "^6.5.0",
+    "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/language": "^6.12.3",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.43.1",
+    "@lezer/highlight": "^1.2.3",
+    "lenis": "^1.3.23",
+    "three": "^0.184.0"
+  }
+}

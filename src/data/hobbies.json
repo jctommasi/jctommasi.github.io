@@ -1,0 +1,64 @@
+{
+  "_note": "Shared content data (PRD US-003). Two hobby entries: aeronautics and music. The aeronautics intro frames flying through a systems-thinking lens (a genuine angle for a security researcher) and meta.isLicensedPilot / meta.isNightRated are real CV credentials; the remaining concrete specifics (aircraft, ratings, hours, routes, gallery images) are intentional {{TODO}} placeholders. The flight logbook is NOT stored here (US-1403): it renders LIVE in the browser from the owner's public Google Sheet (the gviz CSV endpoint — see the US-1404 flight-log module); this file ships no rows and the SSR is an honest pending shell, so no flight figure can ever be fabricated or go stale in the repo. The music entry carries the owner's four public Tidal playlist share URLs (US-1609, 2026-08-07) — real, verifiable identifiers rendered as embeds; its remaining specifics (artists, instruments, link labels, gallery) are still {{TODO}} placeholders. No other specifics are fabricated. See schemas.md for the shape.",
+  "hobbies": [
+    {
+      "type": "aeronautics",
+      "icon": "plane",
+      "meta": {
+        "isLicensedPilot": true,
+        "isNightRated": true
+      },
+      "title": {
+        "es": "Aeronáutica",
+        "en": "Aeronautics"
+      },
+      "intro": {
+        "es": "Volar es, para mí, una extensión del pensamiento de sistemas: listas de verificación, presupuestos de energía, modos de fallo y márgenes de seguridad: la misma mentalidad que aplico al analizar y endurecer software. La aviación premia la disciplina, la conciencia situacional y la planificación previa al vuelo, exactamente lo que exige una operación ofensiva bien ejecutada.",
+        "en": "Flying is, for me, an extension of systems thinking: checklists, energy budgets, failure modes, and safety margins — the same mindset I bring to analyzing and hardening software. Aviation rewards discipline, situational awareness, and pre-flight planning, exactly what a well-run offensive engagement demands."
+      },
+      "aircraft": "{{TODO: aircraft type(s) flown}}",
+      "ratings": "{{TODO: pilot license class and ratings}}",
+      "totalHours": "{{TODO: total flight hours}}",
+      "routes": ["{{TODO: notable routes / airfields}}"],
+      "gallery": [
+        {
+          "src": "{{TODO: gallery image src}}",
+          "alt": "{{TODO: gallery image description}}"
+        }
+      ]
+    },
+    {
+      "type": "music",
+      "icon": "music",
+      "meta": {},
+      "title": {
+        "es": "Música",
+        "en": "Music"
+      },
+      "intro": {
+        "es": "La música es un espacio creativo personal fuera del trabajo. Esta sección está pendiente de completar con detalles concretos.",
+        "en": "Music is a personal creative outlet away from work. This section is pending completion with concrete details."
+      },
+      "instruments": ["{{TODO: instrument(s)}}"],
+      "artists": ["{{TODO: favorite artists}}"],
+      "tidalPlaylists": [
+        "https://tidal.com/playlist/fdf3a268-5fd9-4318-9ae8-85e4653a1171",
+        "https://tidal.com/playlist/398737b8-0684-4efa-851b-11019a521af5",
+        "https://tidal.com/playlist/29d4468c-170c-41c7-acb4-23116d68c03a",
+        "https://tidal.com/playlist/c307d124-a3df-4639-870d-f606f0255d41"
+      ],
+      "links": [
+        {
+          "label": "{{TODO: link label}}",
+          "url": "{{TODO: link URL}}"
+        }
+      ],
+      "gallery": [
+        {
+          "src": "{{TODO: gallery image src}}",
+          "alt": "{{TODO: gallery image description}}"
+        }
+      ]
+    }
+  ]
+}

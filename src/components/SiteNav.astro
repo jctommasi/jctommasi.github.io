@@ -1,0 +1,529 @@
+---
+/**
+ * SiteNav (US-014) — the sticky site header (manual §5.1).
+ *
+ * Holds the canonical nav anchors (site-strings.nav; US-1401 dropped `work`
+ * with its section, and 2026-08-20 gated `research` off with its own — both
+ * strings stay frozen-unused), a Download CV action, and the locale toggle. NO
+ * theme switcher exists anywhere (the seed `switcher` strings stay
+ * frozen-but-unused). All visible/aria text comes from site-strings (P8 — no
+ * hardcoded translatable literals); the locale toggle markup keeps the
+ * `data-locale-link` hooks the BaseLayout head script wires.
+ *
+ * Download CV — HIDDEN since US-1601 (owner call 2026-08-07, "sacar el botón de
+ * download CV, ponerlo en hidden"): the whole control (both variants) is gated
+ * behind SHOW_CV_CONTROL below. The build-time probe + both render branches +
+ * their styles stay in place, dormant — re-enabling is a one-line flip once a
+ * real PDF is committed.
+ *
+ * Download CV (P1 honesty, the dormant contract): the control links to the
+ * per-locale CV PDF only if it is actually committed under public/cv/ (probed on
+ * the filesystem at build time); while absent it renders a disabled "coming
+ * soon" affordance — never a 404 link. Dropping the PDF into public/cv/ flips it
+ * to a real link with zero code change.
+ */
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import type { Locale } from '../i18n';
+import { loadStrings, locales, localizedPath } from '../i18n';
+import { SHOW_RESEARCH } from '../data/research-pipeline';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const strings = await loadStrings(locale);
+// Normalize to a trailing slash (US-605): reader routes may prerender with a
+// slash-less pathname; the locale toggle must map the served directory URL
+// (/research/<id>/ ↔ /es/research/<id>/). No-op for '/' and '/es/'.
+const rawPathname = Astro.url.pathname;
+const pathname = rawPathname.endsWith('/') ? rawPathname : `${rawPathname}/`;
+// US-605: the nav anchors are HOME-ANCHORED — `${home}#<id>` instead of the bare
+// `#<id>`. On the home page the path part matches the current document, so the
+// browser still performs a same-document fragment scroll (no reload); from a
+// reader page (/research/<id>/) the same href navigates back to the portfolio
+// and lands on the section.
+const homePath = localizedPath('/', locale);
+
+// The nav items, listed in DOCUMENT order (2026-08-20 reorder: hero → about →
+// experience → [research] → contact — research sits last of the matrix
+// sections, right after #articles). `home` targets the `hero` section id; the
+// rest share their id. Explicit list (not iterated over strings.nav) so
+// additive keys like nav.label never leak in as anchors and the frozen-unused
+// nav.work never renders.
+//
+// `research` is filtered out while SHOW_RESEARCH is off: the section it points
+// at is not rendered, and an anchor to a missing fragment is a dead control.
+// Both move together, so the header never advertises a target that is not
+// there — 4 anchors today, 5 the moment the flag flips back.
+const navItems = ([
+  { key: 'home', target: 'hero' },
+  { key: 'about', target: 'about' },
+  { key: 'experience', target: 'experience' },
+  { key: 'research', target: 'research' },
+  { key: 'contact', target: 'contact' },
+] as const).filter((item) => SHOW_RESEARCH || item.key !== 'research');
+
+// Locale toggle: one entry per locale (its own label + route to itself).
+const localeOptions = locales.map((l) => ({
+  code: l,
+  label: strings.locale[l],
+  href: localizedPath(pathname, l),
+  current: l === locale,
+}));
+
+// US-1601 — the ONE gate for the whole Download CV control. `false` removes both
+// variants (the real <a download> AND the disabled "coming soon" <button>) from
+// every page's markup; flip to `true` to bring the control back exactly as it
+// was. Typed `boolean` (not the literal) so both render branches stay
+// type-checked while the gate is off. `cta.downloadCv` stays in the string
+// bundle frozen-unused (the `switcher` precedent, P8); `cta.comingSoon` is still
+// LIVE — the research audio-pending buttons use it.
+const SHOW_CV_CONTROL: boolean = false;
+
+// Build-time CV probe (P1): prefer the active locale's CV, fall back to the EN
+// CV if that is the one present, else render the disabled "coming soon" state.
+// process.cwd() is the repo root when `astro build` runs (reliable vs the
+// compiled component's import.meta.url). Skipped entirely while the control is
+// gated off — dormant, not deleted.
+const cvHref = ((): string | null => {
+  if (!SHOW_CV_CONTROL) return null;
+  const cvDir = join(process.cwd(), 'public', 'cv');
+  const localeCv = `JUAN_CRUZ_TOMMASI_CV_${locale.toUpperCase()}.pdf`;
+  const enCv = 'JUAN_CRUZ_TOMMASI_CV_EN.pdf';
+  const cvFile = existsSync(join(cvDir, localeCv))
+    ? localeCv
+    : existsSync(join(cvDir, enCv))
+      ? enCv
+      : null;
+  return cvFile ? `/cv/${cvFile}` : null;
+})();
+---
+
+<header class="site-header">
+  <nav class="primary-nav" aria-label={strings.nav.label}>
+    <ul class="primary-nav__list">
+      {
+        navItems.map((item) => (
+          <li>
+            <a class="primary-nav__link" href={`${homePath}#${item.target}`}>
+              {strings.nav[item.key]}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+
+  <div class="nav-actions">
+    {/* Motion toggle: the full WebGL experience is the default for everyone; this
+        control switches to the calm/poster version (and back), persisted across
+        visits. The VISIBLE label is the action — `reduceMotion` shows while full
+        motion is active, `enableEffects` while the calm version is — so the button
+        gets its accessible name from whichever label is shown (the other is
+        display:none, hence out of the a11y tree). The data-motion attribute (set
+        pre-paint in BaseLayout) decides which shows, so there is no flash. */}
+    <button type="button" class="motion-toggle" data-motion-toggle>
+      <span class="motion-toggle__reduce">{strings.cta.reduceMotion}</span>
+      <span class="motion-toggle__enable">{strings.cta.enableEffects}</span>
+    </button>
+
+    {/* US-1601: gated off — neither branch renders while SHOW_CV_CONTROL is
+        false, so no cv-link markup and no downloadCv label reach the DOM. */}
+    {SHOW_CV_CONTROL &&
+      (cvHref ? (
+        <a class="cv-link" href={cvHref} download>
+          {strings.cta.downloadCv}
+        </a>
+      ) : (
+        <button
+          type="button"
+          class="cv-link cv-link--pending"
+          disabled
+          aria-label={`${strings.cta.downloadCv} — ${strings.cta.comingSoon}`}
+        >
+          <span class="cv-link__label">{strings.cta.downloadCv}</span>
+          <span class="cv-link__badge" aria-hidden="true">{strings.cta.comingSoon}</span>
+        </button>
+      ))}
+
+    <nav class="locale-toggle" aria-label={strings.locale.label}>
+      {
+        localeOptions.map((option) =>
+          option.current ? (
+            <span class="locale-link is-current" lang={option.code} aria-current="true">
+              {option.label}
+            </span>
+          ) : (
+            <a
+              class="locale-link"
+              href={option.href}
+              lang={option.code}
+              data-locale-link={option.code}
+            >
+              {option.label}
+            </a>
+          ),
+        )
+      }
+    </nav>
+  </div>
+</header>
+
+<script>
+  // US-904: the top-bar alien-decode cascade (side-effect module, shared
+  // decode-core engine with the section titles). SiteNav ships on every page,
+  // so home AND the reader routes play the same single boot cascade.
+  import './nav-decode';
+  // Motion toggle: persist the explicit choice, then reload so EVERY motion gate
+  // re-resolves cleanly against the new `data-motion` — the engine boot/dispose,
+  // the reveal observer, the token/scene crossfades, and the caret. A reload is
+  // the robust path (no hot engine start/stop) and instant on a static site; the
+  // pre-paint head script applies the stored preference before the next paint.
+  import { MOTION_STORAGE_KEY } from '../theme/motion';
+  const toggle = document.querySelector('[data-motion-toggle]');
+  toggle?.addEventListener('click', () => {
+    const next = document.documentElement.dataset.motion === 'reduced' ? 'full' : 'reduced';
+    try {
+      localStorage.setItem(MOTION_STORAGE_KEY, next);
+      // Persisted → reload so the pre-paint head script re-applies the choice and
+      // every motion gate (incl. the engine boot/teardown) re-resolves cleanly.
+      location.reload();
+    } catch {
+      // Storage blocked (cookies/storage disabled, enterprise lockdown): the choice
+      // can't persist, so carry it through the reload via a `?motion=` query param
+      // instead — the pre-paint head script reads it as a fallback source of truth,
+      // so the toggle STILL takes effect this session and stays coherent (the engine
+      // re-resolves on the fresh load, no half-flipped state). Doubles as a QA hook.
+      const url = new URL(location.href);
+      url.searchParams.set('motion', next);
+      location.assign(url.href);
+    }
+  });
+</script>
+
+<style>
+  /* =========================================================================
+     Matrix chassis band (US-1101; owner call 2026-08-02 — "cambiar color a
+     verde nada más"). The US-902 carved-bracelet GEOMETRY survives as a pure
+     COLOUR TRANSPLANT onto the --mx-* ramp: same background layers, same
+     stops, same masks — green-on-void base gradient, faint --mx-green CRT
+     streaks, phosphor node dots where the rivets sat, phosphor parting seams.
+     Still CSS-only paint split across two masked ::before/::after pseudo
+     layers (fill fades down 100%→60%, lines fade up ~20%→100%, US-1001) —
+     so the a11y tree and every control's BEHAVIOR stay byte-identical
+     (6 links, data-motion-toggle two-span label, data-locale-link +
+     aria-current, disabled CV out of the tab order). US-1102 inverted the two
+     control rows onto the same ramp ("claro arriba, oscuro abajo"): the nav
+     anchors are FILLED flat --mx-green buttons with void labels, the plates
+     are near-void GHOST outlines — which retired the bracelet gunmetal ramp
+     entirely (P7 amendment #2 dissolved; see theme.css).
+     Two stacked horizontally-centered rows: (1) the nav anchors seated in
+     recessed dark "display window" cells (the photo's digit-window row);
+     (2) the three controls as wide-short plates whose vertical midpoint sits
+     ON the header's bottom border line — pulled across it by the negative
+     bottom margin on .nav-actions (in-flow, so a wrapped plate row at narrow
+     widths gracefully relaxes: the LAST row keeps the straddle, earlier rows
+     sit inside the band). The overhang region is pointer-events:none with the
+     plates themselves auto, so clicks between/below plates reach the page.
+     All paint is STATIC (texture, not motion — the US-602/US-803 class); the
+     only state changes are hover/focus colors. Anchor-jump clearance for the
+     band + plate overhang lives in theme.css --header-clearance.
+
+     US-1611 — THE BAND FOLLOWS THE ZONE. Every colour below is now a --nav-*
+     token (theme.css); the [data-theme='sky'] / [data-theme='note'] blocks there
+     re-point ONLY those values at the sky/note ramps, so the header crossfades
+     with the page instead of staying Matrix green over Aeronautics and the
+     Interests→Contact stretch. This file's GEOMETRY is untouched — same layers,
+     stops, masks, metrics, straddle. Retune chassis colour in theme.css, never
+     here; the band is DARK in every zone by construction, so every contrast
+     floor below stays cell/plate-internal exactly as written.
+     ========================================================================= */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.7rem 1.25rem 0;
+    /* US-1001: the carving splits into two inset:0 z-index:-1 pseudo layers
+       with OPPOSITE vertical alpha ramps — the band FILL (::before) dissolves
+       downward (opacity ~1.0 at the top → ~0.6 at the bottom edge, never to
+       zero: the band still reads whole) while the seam LINES (::after) run the
+       inverse (~0.2 at the top → 1.0 at the bottom), so the bar sits lighter
+       over the page and its carved structure sharpens toward the edge. The
+       sticky z-index:20 header is its own stacking context, so the negative-z
+       pseudos paint above the page scrolling beneath and below every header
+       child. Label contrast is untouched by construction: the nav cells are
+       OPAQUE --mx-green fills and the plates carry a ≥88%-void ghost face
+       (US-1102), so their floors stay cell/plate-internal, independent of the
+       band fill.
+       The header itself keeps only the REAL 1px border-bottom seam at full
+       strength (it IS the bottom line and the straddle-probe reference — a
+       plate's rect midY reads within ±2px of the border-box bottom) and the
+       exterior drop shadow, softened to match the dissolved edge. The old
+       inset top-highlight / bottom-lip box-shadows moved into ::after as 1px
+       background lines (they are LINES, so they follow the inversion — see
+       the compensated alphas there). */
+    border-bottom: 1px solid var(--nav-border);
+    box-shadow: 0 2px 10px var(--nav-shadow);
+  }
+  .site-header::before,
+  .site-header::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+  }
+  /* FILL group — the base top-lit green-on-void face + fine --mx-green CRT
+     streaks (same 2px/3px cadence, ~5% alpha) + four phosphor NODE DOTS at
+     the old rivet positions/sizes (bright --mx-green ~1px core, --mx-green-dim
+     → --mx-green-far halo fading to transparent — emitting light, not metal
+     domes), fading downward 100%→60% via the mask (the mask gradient's black
+     is pure alpha, never a rendered color — P7-clean). */
+  .site-header::before {
+    background:
+      radial-gradient(
+        circle 4px at 14px 12px,
+        var(--nav-dot-core) 0 1px,
+        var(--nav-dot-halo) 2px,
+        var(--nav-dot-far) 3px,
+        transparent 4px
+      ),
+      radial-gradient(
+        circle 4px at calc(100% - 14px) 12px,
+        var(--nav-dot-core) 0 1px,
+        var(--nav-dot-halo) 2px,
+        var(--nav-dot-far) 3px,
+        transparent 4px
+      ),
+      radial-gradient(
+        circle 4px at 14px calc(100% - 12px),
+        var(--nav-dot-core) 0 1px,
+        var(--nav-dot-halo) 2px,
+        var(--nav-dot-far) 3px,
+        transparent 4px
+      ),
+      radial-gradient(
+        circle 4px at calc(100% - 14px) calc(100% - 12px),
+        var(--nav-dot-core) 0 1px,
+        var(--nav-dot-halo) 2px,
+        var(--nav-dot-far) 3px,
+        transparent 4px
+      ),
+      repeating-linear-gradient(180deg, transparent 0 2px, var(--nav-streak) 2px 3px),
+      linear-gradient(180deg, var(--nav-band-top) 0, var(--nav-band-mid) 55%, var(--nav-band-base) 100%);
+    mask-image: linear-gradient(180deg, rgb(0 0 0) 0%, rgb(0 0 0 / 0.6) 100%);
+  }
+  /* LINE group — the two vertical parting seams at 15%/85% gone PHOSPHOR
+     (dark --mx-green-far hairline + --mx-green lip at low alpha) plus the two
+     horizontal 1px lines that were inset box-shadows on the header, all under
+     the INVERSE mask (~0.2 at the top → 1.0 at the bottom: faint up high,
+     fully carved at the edge). The horizontal lines keep the US-1001
+     mask-compensated-alpha discipline re-expressed in green: the top
+     highlight is authored at 70% so it NETS ≈14% under the ~0.2 mask top;
+     the bottom inner lip is authored at 20% and the mask is 1.0 there, so it
+     nets 20%. */
+  .site-header::after {
+    background:
+      linear-gradient(
+        90deg,
+        transparent calc(15% - 1px),
+        var(--nav-seam) calc(15% - 1px) calc(15% + 1px),
+        var(--nav-seam-lip) calc(15% + 1px) calc(15% + 2px),
+        transparent calc(15% + 2px)
+      ),
+      linear-gradient(
+        90deg,
+        transparent calc(85% - 2px),
+        var(--nav-seam-lip) calc(85% - 2px) calc(85% - 1px),
+        var(--nav-seam) calc(85% - 1px) calc(85% + 1px),
+        transparent calc(85% + 1px)
+      ),
+      linear-gradient(180deg, var(--nav-edge-top) 0 1px, transparent 1px),
+      linear-gradient(0deg, var(--nav-edge-bottom) 0 1px, transparent 1px);
+    mask-image: linear-gradient(180deg, rgb(0 0 0 / 0.2) 0%, rgb(0 0 0) 100%);
+  }
+
+  .primary-nav__list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.45rem 0.55rem;
+    /* Band height: with the header padding + plate half in flow this lands the
+       carved band ≈75px ≥ 1.6× the prior ~41px bar, anchors centered. */
+    min-height: 2.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  /* FILLED phosphor button (US-1102 inversion, owner call 2026-08-02: "los de
+     arriba con relleno"): solid flat --mx-green face (owner locked; the
+     green→green-mid gradient / green-mid flat are sanctioned retreats ONLY if
+     a later owner pass wants it quieter) with a void label — ≈14.8:1, surface-
+     internal (the fill is opaque). The old recess gradient + inset bevel
+     box-shadows are gone; a --mx-green-dim hairline edge keeps the 1px border
+     box (geometry byte-identical — paint only). Hover/focus brighten the FILL
+     to --mx-green-hi, the label stays void. */
+  .primary-nav__link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.32rem 0.8rem;
+    color: var(--nav-anchor-label);
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    background: var(--nav-anchor-fill);
+    border: 1px solid var(--nav-anchor-edge);
+    border-radius: 4px;
+  }
+  .primary-nav__link:hover,
+  .primary-nav__link:focus-visible {
+    color: var(--nav-anchor-label);
+    background: var(--nav-anchor-fill-hover);
+  }
+
+  /* Row 2 — the three control plates straddling the bottom border line. The
+     container spans the overhang, so it is pointer-events:none (clicks between
+     and below the plates fall through to the page); each plate restores auto. */
+  .nav-actions {
+    --plate-h: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 0.45rem 0.9rem;
+    margin: 0 0 calc(var(--plate-h) / -2);
+    pointer-events: none;
+  }
+  /* Shared GHOST plate face (US-1102 inversion: "los de abajo sin relleno";
+     aspect ≥ 2.5:1 via the min-width tie to height): near-void translucent
+     face (owner locked ~90% void; HARD FLOOR ≥88% — the plate straddles the
+     header border onto page content, so the label contrast must stay
+     SURFACE-INTERNAL, the US-902/US-1001 opaque-surface rule) + a
+     --mx-green-dim outline that brightens to --mx-green on hover/focus. The
+     brushed-metal gradients + silver streak texture are gone; the drop shadow
+     over the page below re-tints green/void. */
+  .motion-toggle,
+  .cv-link,
+  .locale-toggle {
+    pointer-events: auto;
+    box-sizing: border-box;
+    height: var(--plate-h);
+    min-width: calc(var(--plate-h) * 2.5);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.95rem;
+    background: var(--nav-plate-face);
+    border: 1px solid var(--nav-plate-border);
+    border-radius: 5px;
+    box-shadow: 0 2px 5px var(--nav-plate-shadow);
+    font-family: inherit;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+  }
+  /* Ghost outline brightens on interaction (the pending CV control is disabled
+     and excluded — an honest non-interactive affordance never lights up). */
+  .motion-toggle:hover,
+  .motion-toggle:focus-visible,
+  .cv-link:not(.cv-link--pending):hover,
+  .cv-link:focus-visible,
+  .locale-toggle:hover,
+  .locale-toggle:focus-within {
+    border-color: var(--nav-plate-border-hover);
+  }
+
+  /* Download CV — DORMANT since US-1601 (SHOW_CV_CONTROL is false, so no
+     .cv-link element renders). The rules below stay verbatim so flipping the
+     gate restores the control's exact appearance; they simply match nothing
+     today. Active link (phosphor label over the near-void ghost face:
+     surface-internal ≥12:1 even with a bright rain head behind the overhang). */
+  .cv-link {
+    color: var(--nav-plate-label-hi);
+    text-decoration: none;
+  }
+  .cv-link:hover,
+  .cv-link:focus-visible {
+    color: var(--nav-plate-label);
+  }
+
+  /* Download CV — honest disabled "coming soon" state (P1, no PDF committed).
+     Dim label/badge = the established disabled affordance (WCAG-exempt, the
+     US-032 class); stays out of the tab order via `disabled`. */
+  .cv-link--pending {
+    gap: 0.45rem;
+    color: var(--nav-plate-label-dim);
+    cursor: not-allowed;
+  }
+  .cv-link__badge {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--nav-plate-label-dim);
+    border: 1px solid var(--nav-badge-border);
+    border-radius: 999px;
+    padding: 0.05rem 0.4rem;
+  }
+
+  /* Locale toggle — one plate holding both locale codes (US-014 hooks). */
+  .locale-toggle {
+    gap: 0.55rem;
+  }
+  .locale-link {
+    color: var(--nav-plate-label);
+    text-decoration: none;
+  }
+  .locale-link.is-current {
+    color: var(--nav-plate-label-hi);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .locale-link:not(.is-current):hover,
+  .locale-link:not(.is-current):focus-visible {
+    color: var(--nav-plate-label-hi);
+  }
+
+  /* Motion toggle plate. */
+  .motion-toggle {
+    color: var(--nav-plate-label);
+    cursor: pointer;
+  }
+  .motion-toggle:hover,
+  .motion-toggle:focus-visible {
+    color: var(--nav-plate-label-hi);
+  }
+  /* The visible label = the action. Default (data-motion='full', the static
+     default): offer to reduce. In the calm version: offer to enable. The hidden
+     span is display:none ⇒ out of the a11y tree, so the button's accessible name
+     is always exactly the shown label. */
+  .motion-toggle__enable {
+    display: none;
+  }
+  :global(html[data-motion='reduced']) .motion-toggle__enable {
+    display: inline;
+  }
+  :global(html[data-motion='reduced']) .motion-toggle__reduce {
+    display: none;
+  }
+
+  /* Visible keyboard focus ring (US-046). Uses the shared theme-aware
+     --focus-ring token (theme.css): the nav keeps its own ~void background over
+     EVERY zone, so it inherits the bright root value (never the sky-ink override)
+     and stays visible in all three themes. */
+  .primary-nav__link:focus-visible,
+  .cv-link:focus-visible,
+  .motion-toggle:focus-visible,
+  .locale-link:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+</style>

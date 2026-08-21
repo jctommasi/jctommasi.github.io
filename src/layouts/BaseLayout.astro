@@ -1,0 +1,378 @@
+---
+/**
+ * BaseLayout (US-004) — the shared document shell for both locale routes.
+ *
+ * Owns `<html lang>`, the head, and the locale toggle + its client behaviour.
+ * Page content slots in. The full sticky nav / skip link / Download CV arrive
+ * in US-014 (which will relocate this toggle into the nav, Q1 default: nav only);
+ * until then the toggle is the only chrome and lives top-right.
+ *
+ * The toggle labels come from `site-strings.locale` (P8 — no hardcoded
+ * translatable literals). Locale routing rules live in src/i18n (manual §10).
+ */
+import type { Locale } from '../i18n';
+import { loadStrings, defaultLocale, localizedPath, LOCALE_STORAGE_KEY } from '../i18n';
+import { MOTION_STORAGE_KEY } from '../theme/motion';
+import SceneCanvas from '../components/SceneCanvas.astro';
+import SiteNav from '../components/SiteNav.astro';
+import SeoHead from '../components/SeoHead.astro';
+// Theme system (US-028): the three ramp families, the two type stacks, and the
+// per-theme semantic aliases. Global, themed off `data-theme` on <html> below.
+import '../theme/theme.css';
+
+interface Props {
+  locale: Locale;
+  /** Optional per-page SEO override (US-605 reader pages) — see SeoHead. */
+  page?: {
+    path: string;
+    title: string;
+    description: string;
+  };
+}
+
+const { locale, page } = Astro.props;
+const strings = await loadStrings(locale);
+// Normalize to a trailing slash (US-605): sub-path routes may prerender with a
+// slash-less Astro.url.pathname; the canonical served URL is the directory form
+// (/research/<id>/), so locale mapping must target it. No-op for '/' and '/es/'.
+const rawPathname = Astro.url.pathname;
+const pathname = rawPathname.endsWith('/') ? rawPathname : `${rawPathname}/`;
+
+// The first-visit Accept-Language redirect only makes sense on the unprefixed
+// default route (the entry point); esUrl is its target.
+const isDefaultRoot = locale === defaultLocale;
+const esUrl = localizedPath(pathname, 'es');
+---
+
+<!doctype html>
+{/* data-theme = the active zone's token family (manual §6.1). Defaults to
+    matrix (the hero zone); the zone observer below swaps it on scroll. */}
+<html lang={locale} data-theme="matrix" data-motion="full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/* Per-locale SEO: title, description, canonical, hreflang, OG/Twitter
+        cards, favicons, and Person JSON-LD — all from cv.json (US-049). */}
+    <SeoHead locale={locale} page={page} />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <!--
+      Single inline (synchronous, parser-blocking) script so the redirect runs
+      before first paint (no EN flash) and so the two behaviours share one
+      script scope — two classic <script>s each declaring the define:vars consts
+      would collide at the top-level global scope.
+    -->
+    <script
+      is:inline
+      define:vars={{ storageKey: LOCALE_STORAGE_KEY, motionStorageKey: MOTION_STORAGE_KEY, esUrl, isDefaultRoot }}
+    >
+      (function () {
+        // 0) Resolve the motion preference BEFORE first paint so every CSS/JS
+        //    motion gate keys off the right `data-motion` value with no flash.
+        //    The full WebGL experience is the DEFAULT for everyone — <html> ships
+        //    data-motion="full" statically; we only DOWNGRADE to "reduced" when
+        //    the visitor has explicitly chosen the calm version via the in-page
+        //    toggle (persisted). The OS prefers-reduced-motion is deliberately NOT
+        //    the gate here (the owner's product choice). Runs even if the redirect
+        //    below returns early — the new page load re-runs this first.
+        try {
+          if (localStorage.getItem(motionStorageKey) === 'reduced') {
+            document.documentElement.dataset.motion = 'reduced';
+          }
+        } catch (e) {
+          /* storage blocked → fall through to the ?motion= URL fallback below */
+        }
+        // Explicit ?motion=full|reduced wins: it is the toggle's fallback channel
+        // when storage is blocked (so the choice survives the reload without
+        // persistence), and doubles as a QA hook (like ?tier=). Highest precedence.
+        try {
+          var urlMotion = new URLSearchParams(location.search).get('motion');
+          if (urlMotion === 'reduced' || urlMotion === 'full') {
+            document.documentElement.dataset.motion = urlMotion;
+          }
+        } catch (e2) {
+          /* no URLSearchParams → keep the storage/default resolution */
+        }
+
+        // 0b) Hero typewriter flag (US-110). Set data-hero-anim pre-paint ONLY
+        //     under full motion so CSS hides the static .hero__msg and shows the
+        //     (empty) .hero__stream overlay from the first paint — flash-free.
+        //     The hero-terminal module drops this flag on end / skip / error →
+        //     the static message shows (never blank, P5). Reduced motion and the
+        //     no-JS path never get the flag, so they rest on the static message.
+        if (document.documentElement.dataset.motion !== 'reduced') {
+          document.documentElement.dataset.heroAnim = '';
+        }
+
+        // 1) First-visit language redirect. GitHub Pages is static, so the
+        //    Accept-Language header is unreadable server-side — we honour
+        //    navigator.languages here instead. An explicit stored choice
+        //    (set by the toggle) always wins over the browser language.
+        try {
+          if (isDefaultRoot) {
+            var stored = localStorage.getItem(storageKey);
+            if (stored === 'es') {
+              location.replace(esUrl + location.search + location.hash);
+              return;
+            }
+            if (!stored) {
+              var langs =
+                navigator.languages && navigator.languages.length
+                  ? navigator.languages
+                  : [navigator.language || ''];
+              if ((langs[0] || '').toLowerCase().indexOf('es') === 0) {
+                location.replace(esUrl + location.search + location.hash);
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          /* storage/navigation blocked → no redirect, render as-is */
+        }
+
+        // 2) Persist the explicit choice when the toggle is used, and carry any
+        //    URL hash across the navigation (section anchors land in US-014+).
+        function wireToggle() {
+          var links = document.querySelectorAll('[data-locale-link]');
+          for (var i = 0; i < links.length; i++) {
+            links[i].addEventListener('click', function (e) {
+              try {
+                localStorage.setItem(storageKey, this.getAttribute('data-locale-link'));
+              } catch (_) {
+                /* ignore */
+              }
+              if (location.hash) {
+                e.preventDefault();
+                location.assign(this.getAttribute('href') + location.hash);
+              }
+            });
+          }
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', wireToggle);
+        } else {
+          wireToggle();
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    {/* Skip link = the FIRST focusable element (US-014): jumps past the nav and
+        the aria-hidden hero canvas to the main content region (id main-content). */}
+    <a class="skip-link" href="#main-content">{strings.cta.skipToContent}</a>
+    <SceneCanvas />
+    <SiteNav locale={locale} />
+    <slot />
+    {/* Full-page CRT glass (US-804): one fixed, inert overlay above ALL content
+        (incl. the sticky nav, z 20, and the focused skip link, z 30) painting
+        faint horizontal scanlines — the screen-glass read. Recipe + the
+        owner-tunable --crt-glass-alpha knob live in theme.css. pointer-events:
+        none + aria-hidden ⇒ zero interaction/AT cost; static CSS only (no
+        animation, no JS — time-invariant, flash-free) so it ships identically
+        on both motion paths and on every page using this layout. */}
+    <div class="crt-glass" aria-hidden="true"></div>
+    {/*
+      Scroll-triggered content reveals (US-026, manual §8). A thin custom
+      IntersectionObserver — no GSAP (§11 "keep it light"). Processed (bundled,
+      deferred) so it is TS-checked and runs after the DOM is parsed. When the
+      resolved preference is the calm version (data-motion='reduced') it does
+      NOTHING — the default CSS state is the fully-visible, resolved content, so
+      the calm path lands on it instantly (P5). Otherwise it marks <html>
+      reveal-ready (enabling the hidden initial state) and reveals each section's
+      content once as it scrolls into view.
+    */}
+    <script>
+      import { prefersReducedMotion } from '../theme/motion';
+      if (!prefersReducedMotion()) {
+        const sections = document.querySelectorAll('[data-reveal-section]');
+        if (sections.length) {
+          // Enable the (no-preference-gated) hidden initial state ONLY now — so a
+          // load where this script never runs can't leave content hidden.
+          document.documentElement.classList.add('reveal-ready');
+
+          const reveal = (section: Element) => {
+            section
+              .querySelectorAll('[data-reveal]')
+              .forEach((el) => el.classList.add('is-revealed'));
+          };
+
+          if ('IntersectionObserver' in window) {
+            const io = new IntersectionObserver(
+              (entries, obs) => {
+                for (const entry of entries) {
+                  if (!entry.isIntersecting) continue;
+                  reveal(entry.target);
+                  obs.unobserve(entry.target); // reveal once; stays revealed on scroll-back
+                }
+              },
+              // threshold 0 (first-pixel intersection), NOT 0.12: a section
+              // taller than ~8.3× the viewport (e.g. #research, ~7500px, holding
+              // the 6 chapters + fixed-height practice widgets) can never reach a
+              // 0.12 ratio (maxRatio = vh/sectionH < 0.12), so 0.12 would never
+              // fire for it and it would stay blank (US-101/US-102). We unobserve
+              // on first intersection, so the reveal still happens exactly once.
+              // The -8% bottom margin keeps the trigger point slightly in-view.
+              { threshold: 0, rootMargin: '0px 0px -8% 0px' },
+            );
+            sections.forEach((s) => io.observe(s));
+          } else {
+            // No IntersectionObserver support → reveal everything (never blank).
+            sections.forEach(reveal);
+          }
+        }
+      }
+    </script>
+    {/*
+      Theme zone map (US-028, manual §6.1; retuned US-1402 for the US-1401
+      order). The scroll/section observer drives the active theme token family
+      — every section above #aeronautics = Matrix, #aeronautics = Sky,
+      #interests onward = Note-rain — by setting `data-theme` on
+      <html>; theme.css resolves --bg/--fg/--accent + the type stacks from it,
+      and the backdrop poster swaps to match (SceneCanvas). There is NO theme
+      picker — themes are assigned to zones, never chosen.
+
+      This runs under reduced motion TOO: the owner must still see the correct
+      zone (sky poster in aeronautics, etc.). It only swaps which family is
+      active; the eased token-layer CROSSFADE across boundaries is US-029, and
+      the WebGL scene crossfade is US-044.
+    */}
+    <script>
+      {
+        // US-402 (owner call 2026-07-03; trigger retuned US-1402, owner call
+        // 2026-08-02 "violet from Interests down"): the page has exactly TWO
+        // theme boundaries. Aeronautics (Sky) holds for as long as ANY part of
+        // the section is visible; Note takes over when #interests' title is
+        // about to touch the viewport TOP, and then OWNS the rest of the page
+        // (music + contact stay in the violet Note world — the theme never
+        // returns to Matrix below aeronautics). #interests is contiguous with
+        // #aeronautics (as #music was pre-US-1401), so the rain-scene MORPH_OUT
+        // anchors still land ≈0 exactly at the flip — an invariant the
+        // 2026-08-20 reorder preserves, and the reason this rule is written on
+        // live RECTS rather than section indexes: reordering or hiding a
+        // section above cannot move the boundaries. So
+        // the generic in-band pickWinner is replaced by a STATELESS two-line
+        // rule, evaluated top-down:
+        //   note  ⟸ #interests.top   ≤ NOTE_TOP_LINE_VH · vh  (≈ interests tops out)
+        //   sky   ⟸ #aeronautics.top ≤ SKY_ENTRY_VH     · vh  (entry line UNCHANGED)
+        //   else matrix
+        // Reading the two rects directly each tick is order-independent and needs
+        // no live in-band set. Re-evaluated from the same triggers as before:
+        //  • an IntersectionObserver on the sections as a reflow-safe trigger — it
+        //    fires on ANY intersection change incl. font-swap/scroll-anchoring
+        //    moves that emit NO 'scroll' event (US-045 page-bottom jitter),
+        //  • a rAF-throttled scroll listener (the continuous crossing), and
+        //  • an initial call.
+        // Runs under reduced motion too (the owner must still see each zone's
+        // poster) — this is zone DETECTION, not motion.
+        const root = document.documentElement;
+        const aero = document.getElementById('aeronautics');
+        const interests = document.getElementById('interests');
+        const zoneSections = document.querySelectorAll('main section[id]');
+
+        if (aero && interests && 'IntersectionObserver' in window) {
+          const SKY_ENTRY_VH = 0.925; // #aeronautics.top ≤ this·vh → sky (unchanged)
+          const NOTE_TOP_LINE_VH = 0.02; // #interests.top ≤ this·vh → note owns to the end
+          const setTheme = (theme: string) => {
+            if (root.dataset.theme !== theme) root.dataset.theme = theme;
+          };
+          const pick = () => {
+            const vh = window.innerHeight;
+            if (interests.getBoundingClientRect().top <= NOTE_TOP_LINE_VH * vh) setTheme('note');
+            else if (aero.getBoundingClientRect().top <= SKY_ENTRY_VH * vh) setTheme('sky');
+            else setTheme('matrix');
+          };
+          let rafId = 0;
+          const schedulePick = () => {
+            if (rafId) return;
+            rafId = requestAnimationFrame(() => {
+              rafId = 0;
+              pick();
+            });
+          };
+          const zoneObserver = new IntersectionObserver(() => pick(), { threshold: 0 });
+          zoneSections.forEach((s) => zoneObserver.observe(s));
+          window.addEventListener('scroll', schedulePick, { passive: true });
+          pick();
+        }
+      }
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  /* The full --mx-/--sky-/--note- token families, the type stacks, the per-theme
+     semantic aliases, and the themed html background / body type now live in
+     src/theme/theme.css (US-028, imported above). Only the base box reset stays
+     here. */
+  html,
+  body {
+    margin: 0;
+    min-height: 100%;
+  }
+
+  /* --- Scroll-triggered content reveals (US-026, manual §8) -------------------
+     ONE restrained pattern reused across every section (Section.astro marks the
+     heading + body block as `[data-reveal]` with a `--reveal-i` stagger index):
+     content fades + rises in as its section enters the viewport, heading leading
+     the body. Driven by the thin custom IntersectionObserver below — no GSAP
+     (§11 "keep it light").
+
+     P5 (gated HERE, not deferred): the DEFAULT state is the fully-resolved,
+     visible content. The hidden initial state + transition apply ONLY (a) when
+     the resolved preference is full motion (`html[data-motion='full']`) AND (b)
+     once the script has added `reveal-ready` to <html>. So a visitor who opted
+     into the calm version shows content instantly, and a no-JS / failed-observer
+     load never strands content hidden — both "never blank". Transforms only
+     (opacity/translateY) ⇒ no reflow, no scrollbar growth. Palette-agnostic. */
+  html[data-motion='full'].reveal-ready [data-reveal] {
+    opacity: 0;
+    transform: translateY(1.25rem);
+    transition:
+      opacity 560ms ease,
+      transform 560ms ease;
+    transition-delay: calc(var(--reveal-i, 0) * 100ms);
+  }
+  html[data-motion='full'].reveal-ready [data-reveal].is-revealed {
+    opacity: 1;
+    transform: none;
+  }
+</style>
+
+<style>
+  /* Full-page CRT glass (US-804). Fixed + inset:0 covers the viewport at every
+     scroll position; z-index 40 sits above the sticky nav (20) and the focused
+     skip link (30) — the glass is over EVERYTHING, like physical screen glass.
+     The 6%-void lines stay legible-through by construction (P6 re-probed
+     composited through a glass stripe). The paint comes from the theme.css
+     --crt-glass-lines token (the --crt-glass-alpha knob). */
+  .crt-glass {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    background: var(--crt-glass-lines);
+  }
+
+  /* Skip link: off-screen until focused, then pinned top-left above the nav
+     (z-index beats the sticky header's 20). Palette-only (P7). */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 30;
+    padding: 0.5rem 0.9rem;
+    background: var(--mx-void);
+    color: var(--mx-green-hi);
+    border: 1px solid var(--mx-green);
+    border-radius: 3px;
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+  .skip-link:focus {
+    left: 0.75rem;
+    top: 0.75rem;
+    /* US-046: shared theme-aware ring token. The skip link carries its own opaque
+       --mx-void background, so it inherits the bright root --focus-ring value. */
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+</style>

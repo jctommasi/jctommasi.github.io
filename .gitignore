@@ -1,0 +1,65 @@
+# Astro build output (regenerable; served by `astro preview`). Never committed.
+dist/
+
+# Astro's generated type/cache dir (content types, env.d.ts shim). Regenerable.
+.astro/
+
+# Local npm install of the pinned Astro 6 toolchain. Never committed.
+node_modules/
+
+# Vite caches used by Astro's dev server / build.
+.vite/
+
+# Lighthouse CI run output (desktop + mobile configs). Regenerated locally
+# (npx lhci); never committed.
+.lighthouseci/
+.lighthouseci-mobile/
+
+# Ralph per-run archives of prd.json + progress.txt at branch/feature transitions.
+# These are exact snapshots already recoverable from git history (the prior
+# prd.json/progress.txt commits) — keep them on disk for the harness, not in VCS.
+scripts/ralph/archive/
+
+# SOURCE audit reports (2026-08-20). The research chapters are WRITTEN FROM
+# these documents, but the documents themselves are the raw client deliverable:
+# they carry the unredacted evidence (live instance/host identifiers, full
+# environment dumps) that the published figures deliberately redact. This repo
+# is PUBLIC, so committing one would publish exactly what the redaction removed.
+# Keep them beside the repo for reference — like brazalete.jpg, never emitted.
+*.docx
+*.doc
+*.odt
+
+# ---------------------------------------------------------------------------
+# Private working material (owner call 2026-08-21, before the first push to a
+# PUBLIC GitHub repo). None of it is needed to build or deploy the site — the
+# build reads src/, public/ and the four src/data JSONs, and CI runs npm ci +
+# scripts/gates + astro build. All of it stays ON DISK; it just stops being
+# versioned. NOTE: `git rm --cached` only removes these from the TIP — they
+# remain in the 61 commits of existing history, so a public push must start
+# from a fresh single commit (see LAUNCH.md) if that history matters.
+# ---------------------------------------------------------------------------
+
+# The owner's bracelet reference photo — the header chassis geometry was drawn
+# from it (US-902/US-1101). Never emitted to the site; now never versioned.
+/brazalete.jpg
+
+# Agent + planning material: the project instruction file, the Ralph PRD, the
+# authoring manual and the launch QA record. Internal process, not the product.
+/CLAUDE.md
+/prd.json
+/first-prd-manual.md
+/LAUNCH.md
+
+# Local convenience script (build + dev --host).
+/host-up.sh
+
+# Per-feature PRDs and archived specs.
+/tasks/
+/docs/
+
+# The Ralph harness and its verification artifacts (~132 MB, 828 of them PNGs).
+# Kept on disk as the per-story proof record; far too heavy — and too internal —
+# for a public clone. The committed dev tooling that DOES ship lives one level
+# up: scripts/shoot.mjs and scripts/gates/ (the CI gates).
+/scripts/ralph/

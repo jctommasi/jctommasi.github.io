@@ -1,0 +1,445 @@
+{
+  "_source": "docs/JUAN_CRUZ_TOMMASI_CV_EN.docx",
+  "_note": "Single source of truth for site content (PRD US-000b). Faithful to the CV. Human-facing prose fields are per-field {es,en} objects (US-003): es is a faithful translation of en — no new facts, numbers, or claims; proper nouns and tool names repeat unchanged. Identifiers (org, period, years, tags, URLs, emails, icons) stay language-agnostic. Unknown/absent specifics (music details, pilot hours/ratings/aircraft/routes) are intentionally NOT included here — they live as {{TODO}} placeholders in hobbies content, never fabricated.",
+  "name": "Juan Cruz Tommasi",
+  "title": {
+    "es": "Investigador de Seguridad Ofensiva",
+    "en": "Offensive Security Researcher"
+  },
+  "email": "jctommasi@gmail.com",
+  "blogUrl": "https://medium.com/@hackthebox",
+  "locales": ["es", "en"],
+  "profile": {
+    "headline": {
+      "es": "Investigador de Seguridad Ofensiva · Desarrollador de Exploits · Seguridad de IA Agéntica · Piloto con Licencia",
+      "en": "Offensive Security Researcher · Exploit Developer · Agentic-AI Security · Licensed Pilot"
+    },
+    "body": [
+      {
+        "es": "Autodidacta en hacking desde 2001, con {yearsOffensive} años de experiencia corporativa en Seguridad Ofensiva y 8 años de experiencia en desarrollo web back-end y administración de sistemas, más 1 año automatizando flujos de trabajo impulsados por agentes basados en IA.",
+        "en": "Self-taught in hacking since 2001, with {yearsOffensive} years of corporate experience in Offensive Security and 8 years of experience in back-end web development and systems administration, plus 1 year automating workflows powered by AI-based agents."
+      },
+      {
+        "es": "Se especializa en análisis de código, pruebas de penetración, bug bounty, desarrollo de software e infraestructura, con experiencia en numerosos lenguajes de programación construyendo proyectos de punta a punta — desde el diseño inicial de la solución hasta el despliegue en producción.",
+        "en": "Specializes in code analysis, penetration testing, bug bounty, software development, and infrastructure, with experience across many programming languages from building projects end-to-end — from initial solution design through to production deployment."
+      }
+    ],
+    "yearsExperience": {
+      "backend": 8,
+      "aiAutomation": 1
+    },
+    "origin": {
+      "es": "Autodidacta en hacking desde los 10 años, fuertemente influido por un padre programador. Crecí con computadoras siempre presentes en casa, y escanear internet fue una fascinación temprana — mis primeros escaneos de puertos probablemente datan de esa edad, y con ellos comenzó mi entendimiento sobre infraestructura y servicios: los recursos compartidos de Windows, el protocolo HTTP. En los años siguientes empecé a usar las primeras versiones de Burp Suite y a adentrarme en el mundo del hacking de sitios web, junto con los war-games (hoy comúnmente llamados desafíos CTF).",
+      "en": "Self-taught in hacking since age 10, heavily influenced by a programmer father. I grew up with computers always present at home, and scanning the internet was an early fascination — my first port scans probably date from that age, and with them my understanding of infrastructure and services began: Windows shared resources, the HTTP protocol. In the years that followed I started using the first versions of Burp Suite and getting into the world of website hacking, along with war-games (now commonly called CTF challenges)."
+    }
+  },
+  "specializations": [
+    {
+      "es": "Investigador de Seguridad",
+      "en": "Security Researcher"
+    },
+    {
+      "es": "Herramientas Ofensivas y Desarrollo de Exploits",
+      "en": "Offensive Tooling & Exploit Development"
+    },
+    {
+      "es": "Diseño y Despliegue de IA Agéntica",
+      "en": "Agentic AI Design & Deployment"
+    }
+  ],
+  "competencies": {
+    "summary": {
+      "es": "Especialista en seguridad ofensiva con más de {yearsOffensive} años de experiencia corporativa práctica liderando ejercicios de red team y simulaciones adversarias en entornos cloud, contenedorizados y on-premise, con una trayectoria comprobada en la identificación y el encadenamiento de vulnerabilidades complejas — vectores de ataque novedosos dirigidos a sistemas modernos de IA, flujos de trabajo impulsados por LLM y pipelines agénticos.",
+      "en": "Offensive security specialist with {yearsOffensive}+ years of corporate hands-on experience leading red team engagements and adversarial simulations across cloud, containerized, and on-premise environments, with a proven track record of identifying and chaining complex vulnerabilities — novel attack vectors targeting modern AI systems, LLM-driven workflows, and agentic pipelines."
+    },
+    "pillars": [
+      {
+        "es": "Ejercicios de red team y simulaciones adversarias en entornos cloud, contenedorizados y on-premise.",
+        "en": "Red team engagements & adversarial simulations across cloud, containerized, and on-prem environments."
+      },
+      {
+        "es": "Descubrimiento y encadenamiento de vulnerabilidades — vectores de ataque novedosos contra IA, LLM y sistemas agénticos.",
+        "en": "Vulnerability discovery & chaining — novel AI/LLM/agentic attack vectors."
+      },
+      {
+        "es": "Seguridad ofensiva asistida por IA: integración de stacks de LLM locales y distribuidos (Ollama, vLLM, Claude API) con análisis estático (Joern, CodeQL, Semgrep) y frameworks de agentes (LangGraph, Claude Code, OpenCode) para automatizar el descubrimiento de vulnerabilidades, el análisis de taint sobre dependencias de terceros y el razonamiento de cadenas de exploits.",
+        "en": "AI-assisted offensive security: integrating local & distributed LLM stacks (Ollama, vLLM, Claude API) with static analysis (Joern, CodeQL, Semgrep) and agent frameworks (LangGraph, Claude Code, OpenCode) to automate vulnerability discovery, taint analysis across third-party dependencies, and exploit-chain reasoning."
+      },
+      {
+        "es": "Red-teaming de despliegues empresariales de IA (Microsoft 365 Copilot, pipelines RAG): inyección indirecta de prompts, fuga de contexto, SSRF vía conectores, manipulación de agentes y exfiltración.",
+        "en": "Red-teaming enterprise AI deployments (Microsoft 365 Copilot, RAG pipelines): indirect prompt injection, context leakage, SSRF via connectors, agent manipulation, and exfiltration."
+      },
+      {
+        "es": "Experiencia técnica en internals de Linux, forense de endpoints Windows (SysInternals, WinDBG, kernel callbacks, minifilters), infraestructura contenedorizada (Docker, Kubernetes, Proxmox) y plataformas cloud (AWS, DigitalOcean, Azure).",
+        "en": "Technical expertise across Linux internals, Windows endpoint forensics (SysInternals, WinDBG, kernel callbacks, minifilters), containerized infrastructure (Docker, Kubernetes, Proxmox), and cloud platforms (AWS, DigitalOcean, Azure)."
+      }
+    ],
+    "purpleTeam": {
+      "es": "Con orientación purple team: cada hallazgo ofensivo se entrega con su ingeniería de detección correspondiente — mapeos de eventos Sysmon/Security, consultas SPL de Splunk, KQL para M365 Defender, reglas Sigma e IDs de técnicas MITRE ATT&CK — para que los blue teams puedan cazar el comportamiento exacto ese mismo día. Hábil para traducir cadenas de ataque multietapa en hallazgos claros y priorizados tanto para responsables técnicos como para audiencias ejecutivas, con caminos de remediación concretos y controles compensatorios cuando no hay parches disponibles.",
+      "en": "Purple-team oriented: every offensive finding is delivered with paired detection engineering — Sysmon/Security event mappings, Splunk SPL queries, KQL for M365 Defender, Sigma rules, and MITRE ATT&CK technique IDs — so blue teams can hunt the exact behavior the same day. Skilled at translating multi-stage attack chains into clear, prioritized findings for both technical owners and executive audiences, with concrete remediation paths and compensating controls when patches are not available."
+    }
+  },
+  "skills": [
+    {
+      "category": {
+        "es": "Sistemas de IA y LLM",
+        "en": "AI & LLM Systems"
+      },
+      "items": [
+        "Local & cloud LLM pipelines: Claude Code, Ollama, vLLM, llama.cpp, Hugging Face stacks",
+        "Retrieval-augmented generation (RAG), embedding workflows, multi-provider LLM APIs (Anthropic, OpenAI-compatible)",
+        "Agent orchestration frameworks: LangGraph, LangChain",
+        "MCP (Model Context Protocol) server design, deployment & security review — including custom MCPs for offensive tooling",
+        "Advanced/adversarial prompt engineering: prompt injection, jailbreak resistance, indirect injection via RAG & tool-use pipelines"
+      ]
+    },
+    {
+      "category": {
+        "es": "Programación",
+        "en": "Programming"
+      },
+      "items": [
+        "Python — automation, data processing, security tooling, AI pipelines",
+        "PHP / Laravel — backend development",
+        "C and Rust — low-level and systems-oriented implementations",
+        "Bash and PowerShell — automation, system orchestration, endpoint reconnaissance",
+        "C# — reading and instrumenting applications during desktop-app security reviews"
+      ]
+    },
+    {
+      "category": {
+        "es": "Seguridad Ofensiva y Análisis de Código",
+        "en": "Offensive Security & Code Analysis"
+      },
+      "items": [
+        "Secure code review & vulnerability research with Burp Suite, CodeQL, Joern, Semgrep",
+        "Custom queries and CPG-based taint analysis across third-party dependencies",
+        "Dynamic & behavioral analysis with ProcMon, Process Explorer, and the full SysInternals suite",
+        "Light reverse engineering with WinDbg (kernel callbacks, minifilters, driver inspection)",
+        "Mapping findings to MITRE ATT&CK, CAPEC, CWE; paired Sysmon/SPL/KQL/Sigma detection content"
+      ]
+    },
+    {
+      "category": {
+        "es": "Sistemas y Entornos Operativos",
+        "en": "Systems & Operating Environments"
+      },
+      "items": [
+        "Linux — Debian-based systems, systemd, namespaces, ACLs",
+        "Windows internals — services, ACLs, registry, drivers, UAC, WDAC/AppLocker",
+        "ARM architectures"
+      ]
+    },
+    {
+      "category": {
+        "es": "Infraestructura y DevOps",
+        "en": "Infrastructure & DevOps"
+      },
+      "items": [
+        "Containerized & virtualized environments — Docker, Kubernetes, Proxmox (LXC/VM), VMware",
+        "CIS Benchmark hardening and security review of container & orchestrator configurations",
+        "System-level service orchestration via systemd; PCI/GPU/USB passthrough",
+        "Self-hosted infrastructure operations end-to-end (GitLab, Postgres, supporting services)"
+      ]
+    },
+    {
+      "category": {
+        "es": "Datos y Almacenamiento",
+        "en": "Data & Storage"
+      },
+      "items": [
+        "Relational databases — PostgreSQL, MySQL, SQL Server, Azure SQL (installation, hardening, auth backends pg_hba/SCRAM, troubleshooting)",
+        "NoSQL solutions",
+        "Vector databases & embedding-based retrieval (pgvector, Chroma, and similar)",
+        "MCP-backed data access patterns where databases are exposed to LLM agents under controlled tool surfaces"
+      ]
+    },
+    {
+      "category": {
+        "es": "Plataformas Cloud",
+        "en": "Cloud Platforms"
+      },
+      "items": [
+        "AWS, Azure, DigitalOcean — deployment & management of workloads",
+        "IAM hardening, container/serverless deployments",
+        "Security review of cloud-native services and connectors (incl. Microsoft 365 Copilot)"
+      ]
+    },
+    {
+      "category": {
+        "es": "Hardware e Ingeniería de Bajo Nivel",
+        "en": "Hardware & Low-Level Engineering"
+      },
+      "items": [
+        "UART debugging",
+        "SPI/EEPROM flashing (CH341A)",
+        "Firmware extraction and interaction; BIOS-level analysis",
+        "PCI passthrough (GPU/USB) in virtualized environments for isolated lab/research setups"
+      ]
+    },
+    {
+      "category": {
+        "es": "Herramientas y Ecosistema de Desarrollo",
+        "en": "Tooling & Development Ecosystem"
+      },
+      "items": [
+        "Git and self-hosted GitLab — SSH-based workflows, branch protection",
+        "CI/CD (GitLab CI, GitHub Actions) with embedded security gates — SAST, dependency scanning, SARIF-based findings ingestion",
+        "Builder of internal tooling: custom Claude Code skills, subagents, and MCP servers for code auditing, recon automation, and detection-content generation"
+      ]
+    }
+  ],
+  "experience": [
+    {
+      "org": "AppGate",
+      "role": {
+        "es": "Investigador de Seguridad",
+        "en": "Security Researcher"
+      },
+      "period": "2025 – Present",
+      "startYear": 2025,
+      "endYear": "Present",
+      "highlights": [
+        {
+          "es": "Análisis de código para organizaciones globales de primer nivel, incluyendo proveedores de infraestructura líderes e instituciones bancarias internacionales.",
+          "en": "Code analysis for top-tier global organizations, including leading infrastructure providers and international banking institutions."
+        },
+        {
+          "es": "Equipó al equipo con herramientas automatizadas de reporte y revisión de código, mejorando la eficiencia y la precisión en los distintos proyectos.",
+          "en": "Equipped the team with automated tooling for reporting and code review, improving efficiency and accuracy across engagements."
+        },
+        {
+          "es": "Diseña e implementa flujos de trabajo agénticos que integran el análisis de código con la generación automatizada de reportes, mejorando tanto la escalabilidad como la profundidad de las evaluaciones de seguridad.",
+          "en": "Designs and implements agentic workflows that integrate code analysis with automated report generation, enhancing both scalability and depth of security assessments."
+        }
+      ],
+      "tags": ["Code Analysis", "Agentic AI", "Security Research", "Automated Reporting"]
+    },
+    {
+      "org": "Base4 Security",
+      "role": {
+        "es": "Hacking Ético",
+        "en": "Ethical Hacking"
+      },
+      "period": "2020 – 2025",
+      "startYear": 2020,
+      "endYear": 2025,
+      "highlights": [
+        {
+          "es": "Pruebas de penetración extensivas en múltiples industrias de América Latina.",
+          "en": "Extensive penetration testing across multiple industries in Latin America."
+        },
+        {
+          "es": "Especializado en seguridad de aplicaciones web y seguridad de infraestructura de red.",
+          "en": "Specialized in web application security and network infrastructure security."
+        },
+        {
+          "es": "Condujo simulaciones adversarias / cyber kill chain; construyó infraestructura para campañas de ingeniería social y operaciones de comando y control (C2).",
+          "en": "Conducted adversarial simulations / cyber kill chain; built infrastructure for social engineering campaigns and command-and-control (C2) operations."
+        },
+        {
+          "es": "Ejecutó ejercicios de ingeniería social — phishing, vishing y otras técnicas — para evaluar la resiliencia organizacional.",
+          "en": "Executed social engineering exercises — phishing, vishing, and other techniques — to assess organizational resilience."
+        },
+        {
+          "es": "Desarrollador de herramientas internas de hacking y exploits para una variedad de tecnologías.",
+          "en": "Developer of internal hacking tools and exploits for a variety of technologies."
+        },
+        {
+          "es": "Instructor de capacitaciones en desarrollo seguro alineadas con los principios de OWASP.",
+          "en": "Instructor for secure development training aligned with OWASP principles."
+        }
+      ],
+      "tags": [
+        "Pentesting",
+        "Red Team",
+        "Adversarial Simulation",
+        "C2",
+        "Social Engineering",
+        "OWASP",
+        "Secure Development Instructor"
+      ]
+    },
+    {
+      "org": "Independent",
+      "role": {
+        "es": "Investigador de Seguridad y Desarrollador de Sistemas",
+        "en": "Security Researcher & Systems Developer"
+      },
+      "period": "2018 – 2020",
+      "startYear": 2018,
+      "endYear": 2020,
+      "highlights": [
+        {
+          "es": "Activo en el ecosistema de bug bounty a través de HackerOne y Bugcrowd, identificando y reportando vulnerabilidades en una amplia gama de sistemas de empresas.",
+          "en": "Active in the bug bounty ecosystem via HackerOne and Bugcrowd, identifying and reporting vulnerabilities across a wide range of company systems."
+        },
+        {
+          "es": "Desarrolló sistemas de gestión con Laravel, enfocados en soluciones robustas y eficientes.",
+          "en": "Developed management systems using Laravel, focused on robust and efficient solutions."
+        },
+        {
+          "es": "Responsable del despliegue, la gestión y la seguridad de sistemas de desarrollo propio, asegurando confiabilidad, mantenimiento y protección en entornos de producción.",
+          "en": "Owned the deployment, management, and security of self-developed systems, ensuring reliability, maintenance, and protection in production environments."
+        }
+      ],
+      "tags": ["Bug Bounty", "HackerOne", "Bugcrowd", "Laravel", "DevSecOps"]
+    },
+    {
+      "org": "Enthusiast",
+      "role": {
+        "es": "Jugador de CTF / Wargames y Analista de Exploits",
+        "en": "CTF / Wargames Player & Exploit Analyst"
+      },
+      "period": "2001 – 2018",
+      "startYear": 2001,
+      "endYear": 2018,
+      "highlights": [
+        {
+          "es": "Compitió en CTFs y wargames desde temprana edad, desarrollando fundamentos ofensivos a través de la resolución práctica de desafíos.",
+          "en": "Competed in CTFs and wargames from an early age, building offensive fundamentals through hands-on challenge solving."
+        },
+        {
+          "es": "Leyó y analizó código de exploits públicos para entender cómo funcionan las vulnerabilidades, mucho antes de que la seguridad fuera su profesión.",
+          "en": "Read and analyzed public exploit code to understand how vulnerabilities work, long before security became a profession."
+        }
+      ],
+      "tags": ["CTF", "Wargames", "Exploit Analysis", "milw0rm user", "phrack.org reader"]
+    }
+  ],
+  "education": [
+    {
+      "institution": {
+        "es": "Universidad Tecnológica Nacional",
+        "en": "Universidad Tecnológica Nacional"
+      },
+      "credential": {
+        "es": "Técnico Superior en Programación",
+        "en": "Advanced Technician in Programming"
+      },
+      "period": "2018 – 2020",
+      "startYear": 2018,
+      "endYear": 2020,
+      "notes": {
+        "es": "Formación profesional en el desarrollo de soluciones tecnológicas mediante el diseño, la programación y la implementación de software; sólida experiencia en lenguajes de programación, bases de datos y análisis de sistemas.",
+        "en": "Professionally trained in the development of technological solutions through design, programming, and implementation of software; strong expertise in programming languages, databases, and systems analysis."
+      }
+    },
+    {
+      "institution": {
+        "es": "AACI (Inglés C1)",
+        "en": "AACI (English C1)"
+      },
+      "credential": {
+        "es": "Habilitación para la Enseñanza de Inglés",
+        "en": "English Teaching Qualification"
+      },
+      "period": "2002 – 2008",
+      "startYear": 2002,
+      "endYear": 2008,
+      "notes": {
+        "es": "Clases dinámicas e interactivas dictadas íntegramente en inglés; formación integral en expresión oral, lectura, escritura y comprensión auditiva.",
+        "en": "Dynamic, interactive classes delivered entirely in English; comprehensive speaking, reading, writing, and listening comprehension."
+      }
+    },
+    {
+      "institution": {
+        "es": "Autodidacta",
+        "en": "Self-taught"
+      },
+      "credential": {
+        "es": "Hacking / Seguridad de la Información",
+        "en": "Hacking / Information Security"
+      },
+      "period": "2001 – Present",
+      "startYear": 2001,
+      "endYear": "Present",
+      "notes": {
+        "es": "Autodidacta desde los 10 años, influido por un padre programador (desde los años 90); primeros escaneos, las primeras versiones de Burp Suite y resolución de war-games (hoy conocidos como desafíos CTF).",
+        "en": "Self-taught since age 10, influenced by a programmer father (since the 1990s); early scans, early Burp Suite, and solving war-games (now known as CTF challenges)."
+      }
+    },
+    {
+      "institution": {
+        "es": "Instituto San José D-48",
+        "en": "Instituto San José D-48"
+      },
+      "credential": {
+        "es": "Bachiller con Orientación en Educación",
+        "en": "High School Diploma in Education"
+      },
+      "period": "2001 – 2006",
+      "startYear": 2001,
+      "endYear": 2006,
+      "notes": {
+        "es": "Enfoque en fundamentos pedagógicos, habilidades de comunicación y metodologías de enseñanza — exposición temprana a principios de la docencia y a explicaciones claras y estructuradas.",
+        "en": "Focus on pedagogical foundations, communication skills, and instructional methodologies — early exposure to teaching principles and clear, structured explanations."
+      }
+    }
+  ],
+  "interests": [
+    {
+      "label": {
+        "es": "Gimnasio",
+        "en": "Gym"
+      },
+      "icon": "dumbbell"
+    },
+    {
+      "label": {
+        "es": "E-Sports",
+        "en": "E-Sports"
+      },
+      "icon": "gamepad"
+    },
+    {
+      "label": {
+        "es": "Meditación",
+        "en": "Meditation"
+      },
+      "icon": "meditation"
+    },
+    {
+      "label": {
+        "es": "Lectura",
+        "en": "Reading"
+      },
+      "icon": "book"
+    },
+    {
+      "label": {
+        "es": "Guitarra",
+        "en": "Guitar"
+      },
+      "icon": "guitar"
+    }
+  ],
+  "articles": [
+    {
+      "title": "VS Code Extension Attack",
+      "source": "LinkedIn (BASE4 Security)",
+      "url": "https://linkedin.com/in/jctommasi",
+      "publication": "LinkedIn",
+      "date": "2024-06-18",
+      "exactPermalink": "https://www.linkedin.com/pulse/vs-code-extension-attack-base4-security-hdqye/"
+    },
+    {
+      "title": "Complete take-over of Cisco Unified Communications Manager due to consecutive misconfigurations",
+      "source": "medium.com/bugbountywriteup",
+      "url": "https://medium.com/@hackthebox",
+      "publication": "medium.com",
+      "date": "2022-09-24",
+      "exactPermalink": "https://medium.com/bugbountywriteup/complete-take-over-of-cisco-unified-communications-manager-due-consecutively-misconfigurations-2a1b5ce8bd9a"
+    }
+  ],
+  "contact": {
+    "email": "jctommasi@gmail.com",
+    "blogUrl": "https://medium.com/@hackthebox",
+    "social": [
+      { "label": "Instagram", "url": "https://instagram.com/jctommasi" },
+      { "label": "LinkedIn", "url": "https://linkedin.com/in/jctommasi" },
+      { "label": "GitHub", "url": "https://github.com/jctommasi" },
+      { "label": "Medium / Blog", "url": "https://medium.com/@hackthebox" }
+    ]
+  }
+}

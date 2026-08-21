@@ -1,0 +1,58 @@
+# Build the static Astro site and publish it to GitHub Pages.
+#
+# Mirrors the manual's §16.1 outline. One deliberate, recorded deviation:
+# the manual pins Node 20, but this repo pins Node 22.12.0 in .nvmrc (Astro 6's
+# minimum). We read the version straight from .nvmrc via `node-version-file`, so
+# CI and local builds always use the exact same toolchain — no drift (US-005).
+#
+# Replaces the stale pnpm 9 + Pagefind workflow removed in US-001.
+#
+# Content gates (US-006) + the JS budget gate (US-048) run in the build job before
+# the artifact upload: gate:i18n (locale parity, source-only) fails fast before the
+# build; gate:todo ({{TODO}} lint) and gate:js (initial JS <= 250 KB gz, excl. the
+# lazy WebGL chunk) scan the emitted dist/ after the build. All are runnable locally
+# via the matching npm scripts (or `npm run gate` for the full sequence).
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+# Least-privilege GITHUB_TOKEN plus the OIDC claim that deploy-pages needs.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Serialize Pages publishes so two pushes can't deploy at once.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc # -> 22.12.0; see header note
+          cache: npm
+      - run: npm ci
+      - run: npm run gate:i18n # P8/FR-13 locale parity (source) — fail fast before build (US-006)
+      - run: npm run build # astro build -> dist/ (includes .nojekyll + hashed _astro/)
+      - run: npm run gate:todo # P1/FR-8 — no {{TODO literal in emitted dist (HTML + _astro JS) (US-006)
+      - run: npm run gate:js # §2/§14 — initial JS <= 250 KB gz (excl. lazy WebGL chunk) (US-048)
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

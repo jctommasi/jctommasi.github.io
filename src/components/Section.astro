@@ -1,0 +1,265 @@
+---
+/**
+ * Section (US-014) — a single page-section landmark.
+ *
+ * Renders one `<section>` with a language-agnostic `id` (the anchor target) and
+ * an `<h2>` heading from `site-strings.sections` (P8 — the title text is passed
+ * in by PageBody, never hardcoded here). Body content arrives via the default
+ * slot as each section's own story lands (US-016 → US-025); until then the
+ * shell is just the labelled heading, so every anchor target exists now.
+ *
+ * The region is named by its heading (`aria-labelledby`) so it is exposed as a
+ * proper landmark. `scroll-margin-top` keeps the heading clear of the sticky
+ * nav when reached via an anchor.
+ *
+ * US-026 scroll reveal: the `<section>` is a `data-reveal-section` observed by
+ * the thin IntersectionObserver in BaseLayout; when it enters the viewport its
+ * `[data-reveal]` targets — the heading (i=0) then the body block (i=1) — fade
+ * and rise in with a short heading→body stagger (the `--reveal-i` index). This
+ * is the ONE reveal pattern reused across every section shell (9 rendering
+ * today — 10 with research un-gated); the hero is not a Section, so it is
+ * excluded (it keeps its own one-shot boot, US-015).
+ * Motion is gated reduced-motion-first in BaseLayout (default state = visible).
+ */
+interface Props {
+  /** Language-agnostic section id = anchor target (manual §5.2). */
+  id: string;
+  /** Localized heading text from site-strings.sections (caller-supplied, P8). */
+  title: string;
+  /**
+   * Per-section visual register for the title tab (US-707). STATIC — a
+   * server-rendered attribute chosen per section, NEVER keyed on the live
+   * data-theme flip (the US-029 midpoint trap: readable text must not
+   * role-swap light↔dark across the token crossfade). 'sky' renders the
+   * light instrument-panel plate (aeronautics, whose .aero panel is the
+   * page's light surface); 'note' is reserved for the violet register
+   * (US-708). Default 'matrix' = the green phosphor tab, unchanged.
+   */
+  register?: 'matrix' | 'sky' | 'note';
+}
+
+const { id, title, register = 'matrix' } = Astro.props;
+const headingId = `${id}-heading`;
+---
+
+<section
+  id={id}
+  class="section"
+  aria-labelledby={headingId}
+  data-reveal-section
+  data-register={register}
+>
+  <div class="section__inner">
+    <h2 id={headingId} class="section__title" data-reveal style="--reveal-i: 0">{title}</h2>
+    <div class="section__body" data-reveal style="--reveal-i: 1">
+      <slot />
+    </div>
+  </div>
+</section>
+
+<style>
+  .section {
+    min-height: 60vh;
+    box-sizing: border-box;
+    padding: 4rem 1.5rem;
+    /* Anchor target must clear the sticky bracelet band + the protruding half
+       of its control plates (US-902) — the responsive theme.css token. */
+    scroll-margin-top: var(--header-clearance, 5rem);
+    border-top: 1px solid var(--mx-green-far);
+  }
+  .section__inner {
+    /* US-702: prose spans the panel inner width (no per-element ch caps in
+       PageBody), so THIS cap is what bounds the measure. 63.8rem = the owner's
+       2026-08-10 call ("10% más grande" — 58rem × 1.10, dialed back from the
+       ×1.25 first try); the widest justified block runs ≤ ~105ch at 1920.
+       Shrink here, never the prose. */
+    max-width: 63.8rem;
+    margin: 0 auto;
+  }
+  .section__title {
+    /* Solapa (US-602, seated in US-701): the heading is a centered folder tab
+       emerging exactly from the top border line of the section's content panel.
+       --tab-overlap = the panel border width (1px): the tab's bottom edge sits
+       ON the panel's top border, its side borders meet the line, and the plate
+       covers the 1px border segment beneath it (a true folder tab, not a chip
+       floating over the box). position:relative + z-index:1 paint it ABOVE the
+       panel. EVERY panel is the FIRST child of .section__body with a 1px
+       border and no top margin (audited US-701 — no seam), and every panel has
+       ≥1.4rem top padding, so the first text line keeps a clear gap below the
+       seated tab (probed at 1440 AND 360 where the longer ES titles wrap). */
+    --tab-overlap: 1px;
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0 auto calc(-1 * var(--tab-overlap));
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    /* Vivid phosphor green, theme-STABLE in every zone. The display face comes
+       from the global `h1, h2` rule (theme.css) and swaps with the type stack.
+       US-1002 dim: the TEXT sits at 92% alpha of the register token (owner
+       call 2026-08-01 — the tabs read calmer/embedded in the chrome); ONLY the
+       text dims — plate, border, glow and scanlines stay full strength. P6:
+       green on the 92%-void plate still composites ≈12:1 worst case. */
+    color: color-mix(in srgb, var(--mx-green) 92%, transparent);
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    /* P6 over the bare backdrop AND throughout the token crossfade (US-029): a
+       theme-stable ~92% void plate hugging the heading text. Over the dark
+       Matrix/Note posters it is ~invisible; over the bright Sky poster — and at
+       every blend midpoint of the 9→10 / 10→11 crossfades — it keeps the green
+       heading on a dark surface so contrast holds ≥4.5:1 BY CONSTRUCTION. The
+       heading never role-swaps light↔dark the way a crossfading sky-ink colour
+       would (that collapses to ~1:1 at the midpoint, the reason US-028's static
+       sky-ink override is replaced here). Also lifts the heading clear of a
+       bright live-rain head (rm-off). Same ~void panel treatment as the section
+       bodies (P7 — void-with-alpha, no stray colour).
+       Texture (US-602): barely-visible horizontal scanlines — 1px lines of
+       near-transparent --mx-green-far on a 3px period — layered over the plate
+       (they only DARKEN the already-dark plate, so the green-on-plate contrast
+       floor is unchanged), plus a faint phosphor glow. Ramp tokens only (P7 —
+       the US-607 code accents are NOT used here). US-803: the line recipe now
+       lives in theme.css (--crt-lines-matrix) shared with the content panels,
+       so tab and panel textures can never drift. */
+    background:
+      var(--crt-lines-matrix),
+      color-mix(in srgb, var(--mx-void) 92%, transparent);
+    border: 1px solid var(--mx-green-dim);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    padding: 0.4rem 1.1rem 0.55rem;
+    box-shadow: 0 0 14px color-mix(in srgb, var(--mx-green) 12%, transparent);
+  }
+  /* Sky register tab (US-707): the aeronautics title joins its painted light
+     panel instead of floating as a green Matrix tab over the Sky world. Same
+     geometry/seating as the base tab (US-701 — only paint changes here): a
+     LIGHT plate in the .aero family — ~96% --sky-haze surface (matches the
+     .aero panel fill, so the tab visually merges with the panel it emerges
+     from), --sky-ink text, and the SAME 50%-sky-blue border as .aero so the
+     tab's side borders meet the panel's top border in one continuous line.
+     The scanline texture re-registers to ink-alpha (dark 1px lines on the
+     light plate — the inverted-polarity CRT read); the title text carries the
+     same 92% US-1002 dim as the base tab. Contrast is SELF-CONTAINED
+     (the US-041 .aero principle): ink over the 96%-haze plate composited over
+     pure black worst case ≈10:1, and over a scanline stripe ≈8:1 — ≥4.5:1
+     regardless of backdrop (live sky, matrix rain frame, any crossfade
+     midpoint; the register is static, so no light↔dark role swap, US-029).
+     The Saira face still arrives via theme.css `#aeronautics .section__title`.
+     --sky-* tokens only (P7). */
+  .section[data-register='sky'] .section__title {
+    color: color-mix(in srgb, var(--sky-ink) 92%, transparent);
+    background:
+      var(--crt-lines-sky),
+      /* 97.5% haze — kept in sync with the .aero panel fill (2026-08-08
+         Flight Strip second pass raised both from 96% so the live scene
+         stops ghosting through the logbook; the tab/panel merge holds). */
+      color-mix(in srgb, var(--sky-haze) 97.5%, transparent);
+    border-color: color-mix(in srgb, var(--sky-blue) 50%, transparent);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--sky-blue) 35%, transparent);
+  }
+  /* Note register tab (US-708): the music/interests/contact titles join the
+     violet register of the climb-out world. Unlike the sky variant this stays
+     LIGHT-ON-DARK — --note-accent (#9B7BFF ≈6.4:1 on the void plate, title/
+     accent-grade P6) over the SAME theme-stable dark plate as the base tab
+     (--note-void ≡ --mx-void #050805), so the tab never role-swaps across any
+     crossfade BY CONSTRUCTION (the US-029 rule; static register, US-707).
+     Scanlines re-register to --note-far (violet-black lines, darken-only — the
+     accent-on-plate floor is untouched); the border is the EXACT 45%-accent
+     mix the three note panels carry, so the tab's side borders continue the
+     panel's top border line (US-701/US-707 seating); violet phosphor glow; the
+     title text carries the same 92% US-1002 dim (the tight case: accent ≈6.4:1
+     base on the void plate → ≈5.4:1 at 92%, still ≥4.5:1 — the knob's hard
+     floor here is ~85%, don't dim further without a fresh probe). --note-*
+     tokens only (P7). */
+  /* US-1716 EXCEPTION: #contact overrides this note tab with its own electric
+     treatment (bright undimmed --note-head core, multi-layer violet glow, and
+     a hairline through the title's vertical centre drawn by a ::before on
+     .section__inner). Those rules live in PageBody.astro wrapped in
+     :global(#contact …) — this component's cid can only be reached that way
+     (the US-023 child-component boundary) — and win on the id's specificity.
+     Retune the contact title THERE, not here; interests + music keep this tab. */
+  /* The section separator hairline joins the register too (--note-far = the
+     --mx-green-far hairline role) — a green rule crossing the violet world
+     would read off-register in the owner's "WHOLE register goes violet" ask. */
+  .section[data-register='note'] {
+    border-top-color: var(--note-far);
+  }
+  .section[data-register='note'] .section__title {
+    color: color-mix(in srgb, var(--note-accent) 92%, transparent);
+    background:
+      var(--crt-lines-note),
+      color-mix(in srgb, var(--note-void) 92%, transparent);
+    border-color: color-mix(in srgb, var(--note-accent) 45%, transparent);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--note-accent) 25%, transparent);
+  }
+  /* Typography (US-603): section prose reads as set columns of terminal text —
+     justified with automatic hyphenation (the per-route <html lang> drives the
+     en/es dictionaries). Applied ONCE here on the slot wrapper; text-align and
+     hyphens INHERIT into the slotted PageBody content, so every paragraph,
+     summary, note and prose list item justifies without per-section rules.
+     Non-prose descendants (chips/tags, pre/code + practice widgets, quiz
+     fieldsets, action rows, provenance footers, figcaptions, h3 sub-headings,
+     data tables) get explicit resets where they live (PageBody.astro — they
+     carry that component's scope). The hero terminal and nav sit outside any
+     .section__body, so they stay left-aligned by construction ("títulos
+     centrados" = the section titles, delivered by the US-602 tab above — the
+     h2 keeps its own text-align:center and is NOT inside this scope). */
+  .section__body {
+    text-align: justify;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+  }
+
+  /* --- Idle life (US-604, pruned US-1002), gated on the resolved motion
+     preference — CSS-only ambient motion so the sections read as living
+     terminal hardware. Under data-motion='reduced' the rule doesn't apply
+     (the US-045 invariant — 0 running infinite animations inside sections —
+     stays green by construction).
+
+     The US-604/US-801 blinking tab cursor (the data-title-focus ::after '▌'
+     + tab-blink keyframes, stamped by title-focus.ts) was REMOVED in US-1002
+     (owner call 2026-08-01): alien decode/churn is the title's ONLY life now;
+     title-focus.ts was deleted with it (the cursor rule was its last
+     consumer). The hero terminal keeps its own resting cursor — that one is
+     hero markup, not this component.
+
+     The remaining rule: an occasional CRT flicker on each whole section
+     (panel + text dim together, like a phosphor tube). FLASH-SAFETY MATH
+     (§15 / WCAG 2.3.1
+     three-flashes): one dip per --crt-flicker-cycle (11s) ≈ 0.09 flashes/s
+     ≪ 3/s; the dip is opacity 1 → var(--crt-flicker-dip) 0.96 = 4% (≤5%,
+     ≈3–4% ΔL — far below the ≥10% "general flash" luminance delta); dip
+     length = 1.3% of 11s ≈ 143ms (≤150ms); no colour inversion, no full-black
+     frame; the nth-of-type negative delays de-synchronise sections so the
+     page never dips as one. Parameters live in the named custom properties
+     below (the owner-tunable knobs). Opacity-only ⇒ compositor, no reflow. */
+  :global(html[data-motion='full']) .section {
+    --crt-flicker-cycle: 11s;
+    --crt-flicker-dip: 0.96;
+    animation: crt-flicker var(--crt-flicker-cycle) linear infinite;
+  }
+  :global(html[data-motion='full']) .section:nth-of-type(4n) {
+    animation-delay: -2.75s;
+  }
+  :global(html[data-motion='full']) .section:nth-of-type(4n + 1) {
+    animation-delay: -5.5s;
+  }
+  :global(html[data-motion='full']) .section:nth-of-type(4n + 2) {
+    animation-delay: -8.25s;
+  }
+  @keyframes crt-flicker {
+    0%,
+    98.6% {
+      opacity: 1;
+    }
+    98.65%,
+    99.95% {
+      opacity: var(--crt-flicker-dip, 0.96);
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+</style>

@@ -1,0 +1,14 @@
+---
+// ES route (`/es/`) — Spanish twin of `/` (manual §10). Mirrors index.astro
+// exactly except for the pinned locale; all chrome/content come from the same
+// BaseLayout + PageBody, switched by this single value.
+import type { Locale } from '../../i18n';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageBody from '../../components/PageBody.astro';
+
+const locale: Locale = 'es';
+---
+
+<BaseLayout locale={locale}>
+  <PageBody locale={locale} />
+</BaseLayout>

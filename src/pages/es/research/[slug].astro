@@ -1,0 +1,46 @@
+---
+/**
+ * /es/research/<slug>/ (US-605) — the ES reader page for one research chapter.
+ * A thin wrapper over the shared ResearchArticle body (only `locale` differs
+ * from the EN twin — the two-physical-files-per-route pattern, US-004). The
+ * chapter rides on getStaticPaths props so the collection is read once; the
+ * per-page SEO (title/description/canonical/hreflang/Article JSON-LD) threads
+ * through BaseLayout → SeoHead via the `page` prop.
+ */
+import { getEntry } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ResearchArticle from '../../../components/ResearchArticle.astro';
+import { pick } from '../../../i18n';
+import { SHOW_RESEARCH } from '../../../data/research-pipeline';
+
+export async function getStaticPaths() {
+  // Research hidden (2026-08-20): no paths ⇒ this route emits no pages, so the
+  // unfinished chapter is not reachable by URL either. The route itself stays
+  // intact — flipping SHOW_RESEARCH back on rebuilds every chapter page.
+  if (!SHOW_RESEARCH) return [];
+  const entry = await getEntry('research-chapters', 'research-chapters');
+  if (!entry) throw new Error('research-chapters content collection entry missing');
+  return entry.data.chapters.map((chapter) => ({
+    params: { slug: chapter.id },
+    props: { chapter },
+  }));
+}
+
+type Chapter = CollectionEntry<'research-chapters'>['data']['chapters'][number];
+interface Props {
+  chapter: Chapter;
+}
+
+const locale = 'es' as const;
+const { chapter } = Astro.props;
+const page = {
+  path: `/research/${chapter.id}/`,
+  title: pick(locale, chapter.title),
+  description: pick(locale, chapter.summary),
+};
+---
+
+<BaseLayout locale={locale} page={page}>
+  <ResearchArticle locale={locale} chapter={chapter} />
+</BaseLayout>
