@@ -96,16 +96,12 @@ if (!cvEntry) throw new Error('cv content collection entry missing');
 // headline for <title>, JSON-LD and OG, so cv.json is untouched.
 // US-016 about prose (3 body paragraphs + origin story), all bilingual {es,en}
 // fields read via pick(locale, …) (US-003).
-const { body: profileBody, origin: profileOrigin, yearsExperience } = cvEntry.data.profile;
-// Split Dossier FACT INDEX rows (2026-08-08): the backend / AI spans pass in
-// from the structured cv.json fields (the module composes value from the REAL
-// number, P3); the offensive tenure rides the {yearsOffensive} template and is
-// filled at render through the shared fillYears() (US-1604 — one source, so
-// the index can never disagree with the narrative beside it).
-const aboutFacts = buildAboutFacts({
-  yearsBackend: yearsExperience.backend,
-  yearsAiAutomation: yearsExperience.aiAutomation,
-});
+const { body: profileBody, origin: profileOrigin } = cvEntry.data.profile;
+// Split Dossier FACT INDEX rows: every running tenure (offensive / backend /
+// AI) rides a years.ts template token and is filled at render through the
+// shared fillYears() (US-1604 — one source, so the index can never disagree
+// with the narrative beside it).
+const aboutFacts = buildAboutFacts();
 // US-017 competencies: the 30-second summary, the 5 pillars, and the purple-team
 // posture. All bilingual {es,en} via pick(). 2026-08-08 redesign: the pillars +
 // purpleTeam ARE the six constellation nodes' descriptions — restructured, not
@@ -880,7 +876,10 @@ const openAlbumLabel = (album: { title: string; artist: string }): string =>
                   </span>
                   <span class="exp__tab-meta">
                     <span class="exp__tab-role">{pick(locale, c.role)}</span>
-                    <span class="exp__tab-badge">{c.current ? 'ACTIVE' : 'COMPLETED'}</span>
+                    {/* Owner call: no COMPLETED badge on the Base4 Security chapter. */}
+                    {(c.current || c.slug !== 'base4-security') && (
+                      <span class="exp__tab-badge">{c.current ? 'ACTIVE' : 'COMPLETED'}</span>
+                    )}
                   </span>
                   <span class="exp__tab-period">{c.period}</span>
                 </button>

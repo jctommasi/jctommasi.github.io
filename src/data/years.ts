@@ -1,55 +1,70 @@
 /**
- * Dynamic corporate offensive-security tenure — US-1604.
+ * Dynamic career tenures — US-1604 (generalized).
  *
- * The owner's corporate offensive-security career starts in **February 2020**
- * ("calcular los años desde la fecha febrero 2020"). The figure used to be a
- * literal `6` duplicated across `cv.json` prose AND a numeric
- * `profile.yearsExperience.offensive` field, which rots silently every February.
+ * Every running "N years" figure on the site is computed here from its real
+ * start month, never authored as a literal digit (a literal rots silently each
+ * anniversary):
  *
- * This module is now the SINGLE SOURCE for that number: the JSON prose carries
- * the `{yearsOffensive}` template token (the `{count}`/`{name}` placeholder
- * convention already used by `research.lead` / `switcher`) and every render site
- * fills it through {@link fillYears}. The numeric duplicate was removed from
- * both `cv.json` and the `content.config.ts` schema (owner call) — `backend`
- * and `aiAutomation` stay static literals in the prose, they are historical
- * spans, not a running tenure.
+ *  - `{yearsOffensive}` — corporate offensive security, since **February 2020**
+ *  - `{yearsBackend}`   — back-end development & systems, since **January 2018**
+ *  - `{yearsAi}`        — AI / agentic workflows, since **April 2025**
+ *
+ * ("Self-taught since 2001" stays a literal year — it is a date, not a span.)
+ *
+ * The bilingual JSON prose carries these template tokens and every render site
+ * fills them through {@link fillYears}. A token may also carry its own
+ * singular/plural unit words — `{yearsAi|year|years}` renders `1 year` /
+ * `2 years` (`{yearsAi|año|años}` in Spanish) — so prose stays grammatical as
+ * the number grows.
  *
  * STALENESS BOUND (deliberate, documented): the site is a STATIC build, so the
- * value is baked at build time from the build machine's clock and only changes
- * on the first deploy after each February. A build from Feb 2026 through Jan
- * 2027 emits `6`; the first build from Feb 2027 onward emits `7`. The page is
- * therefore never more than one year — and in practice one deploy — behind, and
- * it never OVER-states the tenure (the floor rounds down). No client JS is
- * involved, so this costs nothing in the initial-JS budget (US-048).
+ * values are baked at build time from the build machine's clock and only change
+ * on the first deploy after each anniversary month. The page is therefore never
+ * more than one deploy behind, and it never OVER-states a tenure (the floor
+ * rounds down). No client JS is involved, so this costs nothing in the
+ * initial-JS budget (US-048).
  */
 
-/** Career start: February 2020 (month index 1 — `Date` months are 0-based). */
-const START_YEAR = 2020;
-const START_MONTH_INDEX = 1;
+/** Start of each span (month index is 0-based, as in `Date`). */
+export const TENURE_STARTS = {
+  Offensive: { year: 2020, monthIndex: 1 }, // February 2020
+  Backend: { year: 2018, monthIndex: 0 }, // January 2018
+  Ai: { year: 2025, monthIndex: 3 }, // April 2025
+} as const;
 
-/** The template token carried by the bilingual `cv.json` prose. */
-export const YEARS_OFFENSIVE_TOKEN = '{yearsOffensive}';
+export type Tenure = keyof typeof TENURE_STARTS;
 
 /**
- * Full elapsed years from 2020-02-01 to `now` (defaults to the build clock),
- * floored — the figure is only incremented once the anniversary month is
- * actually reached, so the site never claims a year it has not completed.
+ * Full elapsed years from the span's start month to `now` (defaults to the
+ * build clock), floored — a figure only increments once the anniversary month
+ * is actually reached, so the site never claims a year it has not completed.
  */
-export function yearsSinceFeb2020(now: Date = new Date()): number {
-  const elapsedMonths =
-    (now.getFullYear() - START_YEAR) * 12 + (now.getMonth() - START_MONTH_INDEX);
+export function yearsSince(tenure: Tenure, now: Date = new Date()): number {
+  const { year, monthIndex } = TENURE_STARTS[tenure];
+  const elapsedMonths = (now.getFullYear() - year) * 12 + (now.getMonth() - monthIndex);
   return Math.max(0, Math.floor(elapsedMonths / 12));
 }
 
+/** Back-compat alias for the original single-span helper. */
+export function yearsSinceFeb2020(now: Date = new Date()): number {
+  return yearsSince('Offensive', now);
+}
+
+/** `{yearsOffensive}`, `{yearsBackend}`, `{yearsAi}` — optionally `|singular|plural`. */
+const TOKEN_RE = /\{years(Offensive|Backend|Ai)(?:\|([^|}]+)\|([^}]+))?\}/g;
+
 /**
- * Fill every `{yearsOffensive}` token in a rendered string with the computed
- * tenure. THE shared helper — every render site that prints a `cv.json` prose
- * field carrying the token must go through this (About body paragraph 1 and the
- * Competencies summary today), so the number can never drift between sections.
+ * Fill every tenure token in a rendered string. THE shared helper — every
+ * render site that prints prose carrying a token must go through this, so a
+ * number can never drift between sections.
  *
- * Safe on strings without the token (returns them unchanged), so it can be
+ * Safe on strings without tokens (returns them unchanged), so it can be
  * applied uniformly across a `body[].map(...)` without per-paragraph knowledge.
  */
 export function fillYears(text: string, now?: Date): string {
-  return text.split(YEARS_OFFENSIVE_TOKEN).join(String(yearsSinceFeb2020(now)));
+  return text.replace(TOKEN_RE, (_m, tenure: Tenure, singular?: string, plural?: string) => {
+    const n = yearsSince(tenure, now);
+    if (singular === undefined || plural === undefined) return String(n);
+    return `${n} ${n === 1 ? singular : plural}`;
+  });
 }

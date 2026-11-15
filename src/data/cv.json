@@ -16,21 +16,17 @@
     },
     "body": [
       {
-        "es": "Autodidacta en hacking desde 2001, con {yearsOffensive} años de experiencia corporativa en Seguridad Ofensiva y 8 años de experiencia en desarrollo web back-end y administración de sistemas, más 1 año automatizando flujos de trabajo impulsados por agentes basados en IA.",
-        "en": "Self-taught in hacking since 2001, with {yearsOffensive} years of corporate experience in Offensive Security and 8 years of experience in back-end web development and systems administration, plus 1 year automating workflows powered by AI-based agents."
+        "es": "Autodidacta en hacking desde 2001, con {yearsOffensive} años de experiencia corporativa en Seguridad Ofensiva y {yearsBackend} años de experiencia en desarrollo web back-end y administración de sistemas, más {yearsAi|año|años} automatizando flujos de trabajo impulsados por agentes basados en IA.",
+        "en": "Self-taught in hacking since 2001, with {yearsOffensive} years of corporate experience in Offensive Security and {yearsBackend} years of experience in back-end web development and systems administration, plus {yearsAi|year|years} automating workflows powered by AI-based agents."
       },
       {
         "es": "Se especializa en análisis de código, pruebas de penetración, bug bounty, desarrollo de software e infraestructura, con experiencia en numerosos lenguajes de programación construyendo proyectos de punta a punta — desde el diseño inicial de la solución hasta el despliegue en producción.",
         "en": "Specializes in code analysis, penetration testing, bug bounty, software development, and infrastructure, with experience across many programming languages from building projects end-to-end — from initial solution design through to production deployment."
       }
     ],
-    "yearsExperience": {
-      "backend": 8,
-      "aiAutomation": 1
-    },
     "origin": {
-      "es": "Autodidacta en hacking desde los 10 años, fuertemente influido por un padre programador. Crecí con computadoras siempre presentes en casa, y escanear internet fue una fascinación temprana — mis primeros escaneos de puertos probablemente datan de esa edad, y con ellos comenzó mi entendimiento sobre infraestructura y servicios: los recursos compartidos de Windows, el protocolo HTTP. En los años siguientes empecé a usar las primeras versiones de Burp Suite y a adentrarme en el mundo del hacking de sitios web, junto con los war-games (hoy comúnmente llamados desafíos CTF).",
-      "en": "Self-taught in hacking since age 10, heavily influenced by a programmer father. I grew up with computers always present at home, and scanning the internet was an early fascination — my first port scans probably date from that age, and with them my understanding of infrastructure and services began: Windows shared resources, the HTTP protocol. In the years that followed I started using the first versions of Burp Suite and getting into the world of website hacking, along with war-games (now commonly called CTF challenges)."
+      "es": "Autodidacta en hacking desde los 10 años, fuertemente influido por un padre programador. Crecí con computadoras siempre presentes en casa, y escanear internet fue una fascinación temprana — mis primeros escaneos de puertos probablemente datan de esa edad, y con ellos comenzó mi entendimiento sobre infraestructura y servicios. Con esos servicios al descubierto, empecé a jugar con la seguridad de los recursos compartidos de Windows y del protocolo HTTP. En los años siguientes empecé a usar las primeras versiones de Burp Suite y a adentrarme en el mundo del hacking de sitios web, junto con los war-games (hoy comúnmente llamados desafíos CTF).",
+      "en": "Self-taught in hacking since age 10, heavily influenced by a programmer father. I grew up with computers always present at home, and scanning the internet was an early fascination — my first port scans probably date from that age, and with them my understanding of infrastructure and services began. With those services uncovered, I started to play with the security of Windows shared resources and the HTTP protocol. In the years that followed I started using the first versions of Burp Suite and getting into the world of website hacking, along with war-games (now commonly called CTF challenges)."
     }
   },
   "specializations": [
@@ -62,12 +58,12 @@
         "en": "Vulnerability discovery & chaining — novel AI/LLM/agentic attack vectors."
       },
       {
-        "es": "Seguridad ofensiva asistida por IA: integración de stacks de LLM locales y distribuidos (Ollama, vLLM, Claude API) con análisis estático (Joern, CodeQL, Semgrep) y frameworks de agentes (LangGraph, Claude Code, OpenCode) para automatizar el descubrimiento de vulnerabilidades, el análisis de taint sobre dependencias de terceros y el razonamiento de cadenas de exploits.",
-        "en": "AI-assisted offensive security: integrating local & distributed LLM stacks (Ollama, vLLM, Claude API) with static analysis (Joern, CodeQL, Semgrep) and agent frameworks (LangGraph, Claude Code, OpenCode) to automate vulnerability discovery, taint analysis across third-party dependencies, and exploit-chain reasoning."
+        "es": "Seguridad ofensiva asistida por IA: integración de stacks de LLM locales y distribuidos (Ollama, vLLM, Claude API) con análisis estático (Joern, CodeQL, Semgrep) y frameworks de agentes (LangGraph, Claude Code, Hermes Agent) para automatizar el descubrimiento de vulnerabilidades, el análisis de taint sobre dependencias de terceros y el razonamiento de cadenas de exploits.",
+        "en": "AI-assisted offensive security: integrating local & distributed LLM stacks (Ollama, vLLM, Claude API) with static analysis (Joern, CodeQL, Semgrep) and agent frameworks (LangGraph, Claude Code, Hermes Agent) to automate vulnerability discovery, taint analysis across third-party dependencies, and exploit-chain reasoning."
       },
       {
-        "es": "Red-teaming de despliegues empresariales de IA (Microsoft 365 Copilot, pipelines RAG): inyección indirecta de prompts, fuga de contexto, SSRF vía conectores, manipulación de agentes y exfiltración.",
-        "en": "Red-teaming enterprise AI deployments (Microsoft 365 Copilot, RAG pipelines): indirect prompt injection, context leakage, SSRF via connectors, agent manipulation, and exfiltration."
+        "es": "Red-teaming de despliegues empresariales de IA (pipelines RAG): inyección indirecta de prompts, fuga de contexto, SSRF vía conectores, manipulación de agentes y exfiltración.",
+        "en": "Red-teaming enterprise AI deployments (RAG pipelines): indirect prompt injection, context leakage, SSRF via connectors, agent manipulation, and exfiltration."
       },
       {
         "es": "Experiencia técnica en internals de Linux, forense de endpoints Windows (SysInternals, WinDBG, kernel callbacks, minifilters), infraestructura contenedorizada (Docker, Kubernetes, Proxmox) y plataformas cloud (AWS, DigitalOcean, Azure).",
@@ -102,8 +98,7 @@
         "Python — automation, data processing, security tooling, AI pipelines",
         "PHP / Laravel — backend development",
         "C and Rust — low-level and systems-oriented implementations",
-        "Bash and PowerShell — automation, system orchestration, endpoint reconnaissance",
-        "C# — reading and instrumenting applications during desktop-app security reviews"
+        "Bash and PowerShell — automation, system orchestration, endpoint reconnaissance"
       ]
     },
     {
@@ -138,7 +133,7 @@
       "items": [
         "Containerized & virtualized environments — Docker, Kubernetes, Proxmox (LXC/VM), VMware",
         "CIS Benchmark hardening and security review of container & orchestrator configurations",
-        "System-level service orchestration via systemd; PCI/GPU/USB passthrough",
+        "System-level service orchestration via systemd",
         "Self-hosted infrastructure operations end-to-end (GitLab, Postgres, supporting services)"
       ]
     },
@@ -161,8 +156,8 @@
       },
       "items": [
         "AWS, Azure, DigitalOcean — deployment & management of workloads",
-        "IAM hardening, container/serverless deployments",
-        "Security review of cloud-native services and connectors (incl. Microsoft 365 Copilot)"
+        "Container/serverless deployments",
+        "Security review of cloud-native services and connectors"
       ]
     },
     {
@@ -185,7 +180,7 @@
       "items": [
         "Git and self-hosted GitLab — SSH-based workflows, branch protection",
         "CI/CD (GitLab CI, GitHub Actions) with embedded security gates — SAST, dependency scanning, SARIF-based findings ingestion",
-        "Builder of internal tooling: custom Claude Code skills, subagents, and MCP servers for code auditing, recon automation, and detection-content generation"
+        "Builder of internal tooling for automation and team growth. Custom Claude Code skills, subagents, and MCP servers for code auditing, recon automation, and detection-content generation"
       ]
     }
   ],
@@ -226,8 +221,8 @@
       "endYear": 2025,
       "highlights": [
         {
-          "es": "Pruebas de penetración extensivas en múltiples industrias de América Latina.",
-          "en": "Extensive penetration testing across multiple industries in Latin America."
+          "es": "Pruebas de penetración extensivas (más de 50) en múltiples industrias de América Latina: banca, infraestructura crítica, retail, e-commerce, salud y agroindustria.",
+          "en": "Extensive penetration testing (50+ engagements) across multiple industries in Latin America: banking, critical infrastructure, retail, e-commerce, healthcare, and agro-industry."
         },
         {
           "es": "Especializado en seguridad de aplicaciones web y seguridad de infraestructura de red.",

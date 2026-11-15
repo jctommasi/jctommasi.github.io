@@ -72,16 +72,9 @@ const cvSchema = z.strictObject({
   profile: z.strictObject({
     headline: localized,
     body: z.array(localized).min(1),
-    // US-1604: `offensive` was REMOVED (deliberate schema edit — the data-shape
-    // rule). The corporate offensive-security tenure is no longer a literal:
-    // the prose carries the `{yearsOffensive}` token and src/data/years.ts
-    // computes it from February 2020 at build time, so a numeric duplicate here
-    // could only ever go stale. `backend` + `aiAutomation` are fixed historical
-    // spans and stay.
-    yearsExperience: z.strictObject({
-      backend: z.number().int().nonnegative(),
-      aiAutomation: z.number().int().nonnegative(),
-    }),
+    // US-1604: the running tenures are no longer schema'd numbers — the prose
+    // carries `{yearsOffensive}` / `{yearsBackend}` / `{yearsAi}` tokens and
+    // src/data/years.ts computes them from their start months at build time.
     origin: localized,
   }),
   specializations: z.array(localized).min(1),

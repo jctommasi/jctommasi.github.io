@@ -11,15 +11,11 @@
  * requires (the competencies.ts / research-pipeline.ts pattern).
  *
  * WHAT IS REAL vs DERIVED (P3 — every rendered fact traces to cv.json):
- *  - The corporate offensive-security tenure is NEVER an authored digit here:
- *    its value keeps the `{yearsOffensive}` template token and every render
- *    goes through the shared fillYears() (US-1604 — years.ts is the single
- *    source, so the dossier can never drift from the About prose beside it).
- *  - The backend / AI-automation spans are the structured
- *    cv.json profile.yearsExperience fields, passed in by the caller —
- *    {@link buildAboutFacts} composes the value from the REAL number (only the
- *    unit word is authored here), so the index and the schema'd data can't
- *    disagree.
+ *  - The running tenures (corporate offensive security, backend & systems,
+ *    AI workflows) are NEVER authored digits here: each value is a years.ts
+ *    template token and every render goes through the shared fillYears()
+ *    (US-1604 — years.ts is the single source, so the dossier can never drift
+ *    from the About prose beside it).
  *  - "Since 2001" and the CORE PRACTICE line are faithful COMPACT compressions
  *    of profile.body[0] / profile.body[1] (every term appears verbatim in the
  *    source prose) — the competencies `tagline` class: module-held bilingual
@@ -60,27 +56,7 @@ export interface AboutFact {
   value: LocalizedText;
 }
 
-/** The derived spans the caller reads from cv.json profile.yearsExperience —
- *  passed in so the module never duplicates a structured number (P3). */
-export interface AboutFactInputs {
-  yearsBackend: number;
-  yearsAiAutomation: number;
-}
-
-/** `N years` / `N años` from a REAL span number (unit word only lives here). */
-function yearsValue(n: number): LocalizedText {
-  return {
-    es: `${n} ${n === 1 ? 'año' : 'años'}`,
-    en: `${n} ${n === 1 ? 'year' : 'years'}`,
-  };
-}
-
-/**
- * The FACT INDEX rows, in the narrative order of profile.body[0] (origin →
- * tenure → backend → AI → practice). Adding a row = adding an entry here; the
- * render site iterates.
- */
-export function buildAboutFacts({ yearsBackend, yearsAiAutomation }: AboutFactInputs): AboutFact[] {
+export function buildAboutFacts(): AboutFact[] {
   return [
     {
       id: 'self-taught',
@@ -91,22 +67,22 @@ export function buildAboutFacts({ yearsBackend, yearsAiAutomation }: AboutFactIn
     {
       id: 'offensive-security',
       icon: 'shield',
-      label: 'OFFENSIVE SECURITY',
-      // The running tenure stays the US-1604 template — filled at render via
-      // the shared fillYears(), never an authored digit (it would rot).
-      value: { es: '{yearsOffensive} años', en: '{yearsOffensive} years' },
+      label: 'CORPORATE OFFENSIVE SECURITY',
+      // Running tenures are US-1604 templates — filled at render via the
+      // shared fillYears() (years.ts), never an authored digit (it would rot).
+      value: { es: '{yearsOffensive|año|años}', en: '{yearsOffensive|year|years}' },
     },
     {
       id: 'backend-systems',
       icon: 'database',
       label: 'BACKEND & SYSTEMS',
-      value: yearsValue(yearsBackend),
+      value: { es: '{yearsBackend|año|años}', en: '{yearsBackend|year|years}' },
     },
     {
       id: 'ai-workflows',
       icon: 'sparkles',
       label: 'AI WORKFLOWS',
-      value: yearsValue(yearsAiAutomation),
+      value: { es: '{yearsAi|año|años}', en: '{yearsAi|year|years}' },
     },
     {
       id: 'core-practice',

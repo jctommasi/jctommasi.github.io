@@ -153,8 +153,8 @@ export const COMPETENCY_NODES: readonly CompetencyNode[] = [
     icon: 'cpu',
     accent: 'green',
     tagline: {
-      en: 'Red-teaming enterprise AI — M365 Copilot, RAG pipelines, agentic workflows.',
-      es: 'Red-teaming de IA empresarial — M365 Copilot, pipelines RAG y flujos agénticos.',
+      en: 'Red-teaming enterprise AI — RAG pipelines, agentic workflows.',
+      es: 'Red-teaming de IA empresarial — pipelines RAG y flujos agénticos.',
     },
     // Traces to pillar[3] (the enterprise-AI red-teaming pillar).
     concepts: [
@@ -165,7 +165,6 @@ export const COMPETENCY_NODES: readonly CompetencyNode[] = [
       'Agent manipulation',
       'Connector SSRF',
       'Data exfiltration',
-      'Microsoft 365 Copilot',
     ],
     source: { kind: 'pillar', index: 3 },
   },
@@ -188,7 +187,7 @@ export const COMPETENCY_NODES: readonly CompetencyNode[] = [
       'Semgrep',
       'LangGraph',
       'Claude Code',
-      'OpenCode',
+      'Hermes Agent',
     ],
     source: { kind: 'pillar', index: 2 },
   },
