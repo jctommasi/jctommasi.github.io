@@ -876,10 +876,8 @@ const openAlbumLabel = (album: { title: string; artist: string }): string =>
                   </span>
                   <span class="exp__tab-meta">
                     <span class="exp__tab-role">{pick(locale, c.role)}</span>
-                    {/* Owner call: no COMPLETED badge on the Base4 Security chapter. */}
-                    {(c.current || c.slug !== 'base4-security') && (
-                      <span class="exp__tab-badge">{c.current ? 'ACTIVE' : 'COMPLETED'}</span>
-                    )}
+                    {/* Owner call: only the current chapter carries a badge (ACTIVE); past chapters show none. */}
+                    {c.current && <span class="exp__tab-badge">ACTIVE</span>}
                   </span>
                   <span class="exp__tab-period">{c.period}</span>
                 </button>
